@@ -5,6 +5,7 @@ import sys
 
 from flask import Flask, render_template
 
+import me_db.user.views
 from me_db import public
 from me_db.extensions import (
     bcrypt,
@@ -35,7 +36,7 @@ def register_extensions(app):
     bcrypt.init_app(app)
     db.init_app(app)
     csrf_protect.init_app(app)
-    #login_manager.init_app(app)
+    login_manager.init_app(app)
     debug_toolbar.init_app(app)
     return None
 
@@ -43,6 +44,7 @@ def register_extensions(app):
 def register_blueprints(app):
     """Register Flask blueprints."""
     app.register_blueprint(public.blueprint)
+    app.register_blueprint(me_db.user.views.blueprint)
     return None
 
 
