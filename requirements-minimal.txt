@@ -1,0 +1,10 @@
+click
+environs
+flask
+flask-bcrypt
+flask-debugtoolbar
+flask-login
+flask-sqlalchemy
+flask-wtf
+sqlalchemy
+wtforms
