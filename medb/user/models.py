@@ -6,8 +6,8 @@ from sqlalchemy import Integer
 from sqlalchemy import LargeBinary
 from sqlalchemy import String
 
-from me_db.database import Model
-from me_db.extensions import bcrypt
+from medb.database import Model
+from medb.extensions import bcrypt
 
 
 class User(UserMixin, Model):

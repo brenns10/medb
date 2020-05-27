@@ -5,9 +5,9 @@ import sys
 
 from flask import Flask, render_template
 
-import me_db.user.views
-from me_db import public
-from me_db.extensions import (
+import medb.user.views
+from medb import public
+from medb.extensions import (
     bcrypt,
     csrf_protect,
     db,
@@ -16,7 +16,7 @@ from me_db.extensions import (
 )
 
 
-def create_app(config_object="me_db.settings"):
+def create_app(config_object="medb.settings"):
     """Create application factory, as explained here: http://flask.pocoo.org/docs/patterns/appfactories/.
     :param config_object: The configuration object to use.
     """
@@ -44,7 +44,7 @@ def register_extensions(app):
 def register_blueprints(app):
     """Register Flask blueprints."""
     app.register_blueprint(public.blueprint)
-    app.register_blueprint(me_db.user.views.blueprint)
+    app.register_blueprint(medb.user.views.blueprint)
     return None
 
 

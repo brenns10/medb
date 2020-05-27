@@ -3,7 +3,7 @@
 Database module, including the SQLAlchemy database object and DB-related
 utilities.
 """
-from me_db.extensions import db
+from medb.extensions import db
 
 # Alias common SQLAlchemy names
 Column = db.Column

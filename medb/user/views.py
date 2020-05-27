@@ -12,10 +12,10 @@ from flask_login import login_required
 from flask_login import login_user
 from flask_login import logout_user
 
-from me_db.extensions import login_manager
-from me_db.user.forms import LoginForm
-from me_db.user.models import User
-from me_db.utils import flash_errors
+from medb.extensions import login_manager
+from medb.user.forms import LoginForm
+from medb.user.models import User
+from medb.utils import flash_errors
 
 blueprint = Blueprint(
     "user", __name__, url_prefix="/users", static_folder="../static")
