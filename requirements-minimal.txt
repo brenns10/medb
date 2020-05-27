@@ -6,5 +6,6 @@ flask-debugtoolbar
 flask-login
 flask-sqlalchemy
 flask-wtf
+plaid-python
 sqlalchemy
 wtforms

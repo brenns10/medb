@@ -6,6 +6,7 @@ import sys
 from flask import Flask, render_template
 
 import medb.user.views
+import medb.shiso.views
 from medb import public
 from medb.extensions import (
     bcrypt,
@@ -45,6 +46,7 @@ def register_blueprints(app):
     """Register Flask blueprints."""
     app.register_blueprint(public.blueprint)
     app.register_blueprint(medb.user.views.blueprint)
+    app.register_blueprint(medb.shiso.views.blueprint)
     return None
 
 
