@@ -1,7 +1,31 @@
 {% extends "layout.html" %}
 {% block title %}Plaid Item Detail{% endblock %}
 {% block content %}
-  <h1>Plaid Item Detail</h1>
-  <pre><code>{{ item_text }}</code></pre>
+  <h1>Item Detail</h1>
+  <p>Summary of your linked account with {{ item.institution_name }}:</p>
+  {% macro showlist(list, header, missing) %}
+    {% if list %}
+    <p>{{ header }}</p>
+      <ul>
+        {% for account in list %}
+        <li>{{ account['name'] }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>{{ missing }}</p>
+    {% endif %}
+  {%- endmacro %}
+  {% if item.eligible_accounts %}
+    <form method="POST" action="{{url_for('.link_accounts', item_id=item_id)}}" >
+      {{ form.csrf_token }}
+      <p>You can link the following accounts:</p>
+      {{ form.link(class_="form-control") }}
+      <button class="btn btn-lg btn-primary" type="submit">Link Selected</button>
+    </form>
+  {% endif %}
+  {{ showlist(item.linked_accounts, "These accounts are already linked:",
+          "You have not linked any accounts yet.") }}
+  {{ showlist(item.ineligible_accounts, "This item has these accounts which can't be linked:",
+          "No accounts which cannot be linked.") }}
 {% endblock %}
 {% block footer %}{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+{% block title %}Shiso{% endblock %}
+{% block content %}
+<h1>Shiso</h1>
+<p>Your linked accounts:</p>
+<ul>
+  {% for acct in accounts %}
+    <li>{{acct.name}}</li>
+  {% endfor %}
+</ul>
+<a href="{{url_for('.link')}}">Link new financial institution</a>
+{% endblock %}
+{% block footer %}{% endblock %}

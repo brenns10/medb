@@ -14,9 +14,12 @@ from flask_login import login_required
 
 from medb.settings import PLAID_ENV
 from medb.settings import PLAID_PUBLIC_KEY
+from medb.shiso.forms import LinkAccountForm
 from medb.shiso.forms import LinkItemForm
 from medb.shiso.logic import create_item
-from medb.shiso.logic import get_item
+from medb.shiso.logic import get_item_summary
+from medb.shiso.logic import get_linked_accounts
+from medb.shiso.logic import link_account
 from medb.shiso.models import UserPlaidItem
 from medb.utils import flash_errors
 
@@ -39,16 +42,29 @@ def link():
         plaid_public_key=PLAID_PUBLIC_KEY)
 
 
-@blueprint.route("/plaid_item/<item_id>/", methods=["GET"])
+@blueprint.route("/plaid_item/<item_id>/", methods=["GET", "POST"])
 @login_required
 def link_accounts(item_id):
-    plaid_item = UserPlaidItem.query.filter(
-        UserPlaidItem.user_id==current_user.id,
-        UserPlaidItem.id==item_id
-    ).one_or_none()
-    if not plaid_item:
+    item_summary = get_item_summary(item_id)
+    if not item_summary:
         abort(404)
 
-    item = get_item(plaid_item.access_token)
-    return render_template("shiso/plaid_item.html",
-        item_text=json.dumps(item, indent=2))
+    #import pdb; pdb.set_trace()
+    accounts = {a['account_id']: a for a in item_summary.eligible_accounts}
+    form = LinkAccountForm(request.form)
+    form.link.choices = [
+        (a['account_id'], a['name']) for a in item_summary.eligible_accounts]
+    if form.validate_on_submit():
+        for account_id in form.link.data:
+            link_account(current_user, item_id, accounts[account_id])
+        flash('Linked accounts!', 'info')
+        return redirect(url_for('.home'))
+    return render_template("shiso/plaid_item.html", item=item_summary,
+        form=form, item_id=item_id)
+
+
+@blueprint.route("/", methods=["GET"])
+@login_required
+def home():
+    accts = get_linked_accounts(current_user)
+    return render_template("shiso/home.html", accounts=accts)
