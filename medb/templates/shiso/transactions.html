@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% block title %}Shiso Transaction Overview{% endblock %}
+{% block content %}
+<h1>Shiso Transaction Overview</h1>
+<p>Transactions:</p>
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">Date</th>
+      <th scope="col">Name</th>
+      <th scope="col">Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for txn in txns %}
+      <tr>
+        <td>{{txn['date']}}</td>
+        <td>{{txn['name']}}</td>
+        <td>${{txn['amount']}}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+{% block footer %}{% endblock %}

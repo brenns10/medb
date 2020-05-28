@@ -19,6 +19,8 @@ from medb.shiso.forms import LinkItemForm
 from medb.shiso.logic import create_item
 from medb.shiso.logic import get_item_summary
 from medb.shiso.logic import get_linked_accounts
+from medb.shiso.logic import get_transactions
+from medb.shiso.logic import get_upa_by_id
 from medb.shiso.logic import link_account
 from medb.shiso.models import UserPlaidItem
 from medb.utils import flash_errors
@@ -68,3 +70,13 @@ def link_accounts(item_id):
 def home():
     accts = get_linked_accounts(current_user)
     return render_template("shiso/home.html", accounts=accts)
+
+
+@blueprint.route("/account/<int:account_id>/", methods=["GET"])
+@login_required
+def account_transactions(account_id):
+    account = get_upa_by_id(account_id)
+    if not account or account.account.user_id != current_user.id:
+        abort(404)
+    return render_template("shiso/transactions.html",
+        txns=get_transactions(account.account.access_token, [account.account_id]))

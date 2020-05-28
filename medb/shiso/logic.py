@@ -2,6 +2,7 @@
 """
 Logic for interacting with Plaid API and the database.
 """
+import datetime
 from dataclasses import dataclass
 from dataclasses import field
 from functools import lru_cache
@@ -129,3 +130,26 @@ def get_linked_accounts(user):
         UserPlaidAccount.item_id.in_([it.id for it in user_items])
     ).all()
     return user_accounts
+
+
+def get_upa_by_id(upa_id):
+    return UserPlaidAccount.query.options(
+        joinedload('account')
+    ).get(upa_id)
+
+
+def get_transactions(access_token, account_ids, days_ago=30):
+    client = plaid_client()
+    today = datetime.date.today()
+    start = today - datetime.timedelta(days=days_ago)
+    kwargs = dict(
+        access_token=access_token, start_date=start.isoformat(),
+        end_date=today.isoformat(), account_ids=account_ids,
+    )
+    response = client.Transactions.get(**kwargs)
+    offset = len(response['transactions'])
+    yield from response['transactions']
+    while offset < response['total_transactions']:
+        response = client.Transactions.get(offset=offset, **kwargs)
+        offset += len(response['transactions'])
+        yield from response['transactions']
