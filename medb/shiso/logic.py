@@ -3,8 +3,11 @@
 Logic for interacting with Plaid API and the database.
 """
 import datetime
+import json
+import typing as t
 from dataclasses import dataclass
 from dataclasses import field
+from decimal import Decimal
 from functools import lru_cache
 from typing import Dict
 from typing import List
@@ -17,8 +20,13 @@ from medb.settings import PLAID_CLIENT_ID
 from medb.settings import PLAID_SECRET
 from medb.settings import PLAID_PUBLIC_KEY
 from medb.settings import PLAID_ENV
+from medb.shiso.models import Balance
+from medb.shiso.models import PaymentChannel
+from medb.shiso.models import Transaction
 from medb.shiso.models import UserPlaidAccount
 from medb.shiso.models import UserPlaidItem
+from medb.shiso.forms import LinkItemForm
+from medb.user.models import User
 
 
 SUPPORTED_TYPES = {
@@ -43,8 +51,53 @@ class ItemSummary(object):
     ineligible_accounts: List[Dict] = field(default_factory=list)
 
 
+@dataclass
+class PlaidTransaction:
+
+    transaction_type: str
+    transaction_id: str
+    account_owner: t.Optional[str]
+    pending_transaction_id: t.Optional[str]
+    pending: bool
+    payment_channel: PaymentChannel
+    payment_meta: t.Dict[str, t.Optional[str]]
+    name: str
+    merchant_name: t.Optional[str]
+    location: t.Dict[str, t.Union[None, str, float]]
+    authorized_date: t.Optional[str]
+    date: str
+    category_id: str
+    category: t.Optional[t.List[str]]
+    unofficial_currency_code: t.Optional[str]
+    iso_currency_code: t.Optional[str]
+    amount: float
+    account_id: str
+    transaction_code: t.Optional[str] = None
+
+    def to_plaid_transaction(self, acct_id: int) -> Transaction:
+        print(self.amount)
+        return Transaction(
+            account_id=acct_id,
+            plaid_txn_id=self.transaction_id,
+            amount=Decimal(str(self.amount)),
+            posted=not self.pending,
+            reviewed=False,
+            name=self.name,
+            date=datetime.date.fromisoformat(self.date),
+            plaid_payment_channel=self.payment_channel,
+            plaid_payment_meta=json.dumps(self.payment_meta),
+            plaid_merchant_name=self.merchant_name,
+            plaid_location=json.dumps(self.location),
+            plaid_authorized_date=(
+                None if self.authorized_date is None
+                else datetime.date.fromisoformat(self.authorized_date)
+            ),
+            plaid_category_id=self.category_id,
+        )
+
+
 @lru_cache(maxsize=1)
-def plaid_client():
+def plaid_client() -> plaid.Client:
     return plaid.Client(
         client_id=PLAID_CLIENT_ID,
         secret=PLAID_SECRET,
@@ -54,7 +107,7 @@ def plaid_client():
     )
 
 
-def create_item(user, form):
+def create_item(user: User, form: LinkItemForm) -> UserPlaidItem:
     client = plaid_client()
     public_token = form.public_token.data
     exchange_response = client.Item.public_token.exchange(public_token)
@@ -68,26 +121,26 @@ def create_item(user, form):
     return item
 
 
-def get_item(access_token):
+def get_item(access_token: str) -> t.Any:
     client = plaid_client()
     return client.Item.get(access_token)
 
 
-def get_accounts(access_token):
+def get_accounts(access_token: str) -> t.Any:
     client = plaid_client()
     return client.Accounts.get(access_token)
 
 
-def get_institution(ins_id):
+def get_institution(ins_id: str) -> t.Any:
     client = plaid_client()
     return client.Institutions.get_by_id(ins_id)
 
 
-def is_eligible_account(acct):
+def is_eligible_account(acct: t.Dict) -> bool:
     return (acct['type'], acct['subtype']) in SUPPORTED_TYPES
 
 
-def get_item_summary(item_id):
+def get_item_summary(item_id: str) -> ItemSummary:
     item = UserPlaidItem.query.options(joinedload('accounts')).get(item_id)
     if not item:
         return None
@@ -112,7 +165,7 @@ def get_item_summary(item_id):
     return summary
 
 
-def link_account(user, item_id, account):
+def link_account(item_id: str, account: t.Dict):
     acct = UserPlaidAccount(
         item_id=item_id,
         account_id=account['account_id'],
@@ -123,7 +176,7 @@ def link_account(user, item_id, account):
     db.session.commit()
 
 
-def get_linked_accounts(user):
+def get_linked_accounts(user: User):
     user_items = UserPlaidItem.query.filter(
         UserPlaidItem.user_id == user.id
     ).all()
@@ -133,13 +186,14 @@ def get_linked_accounts(user):
     return user_accounts
 
 
-def get_upa_by_id(upa_id):
+def get_upa_by_id(upa_id: int):
     return UserPlaidAccount.query.options(
-        joinedload('account')
+        joinedload('item')
     ).get(upa_id)
 
 
-def get_transactions(access_token, account_ids, days_ago=30):
+def get_transactions(access_token: str, account_ids: t.List[str],
+                     days_ago: int = 30) -> t.Iterator[PlaidTransaction]:
     client = plaid_client()
     today = datetime.date.today()
     start = today - datetime.timedelta(days=days_ago)
@@ -149,8 +203,48 @@ def get_transactions(access_token, account_ids, days_ago=30):
     )
     response = client.Transactions.get(**kwargs)
     offset = len(response['transactions'])
-    yield from response['transactions']
+    print(response['accounts'])
+    for txn in response['transactions']:
+        yield PlaidTransaction(**txn)
     while offset < response['total_transactions']:
         response = client.Transactions.get(offset=offset, **kwargs)
         offset += len(response['transactions'])
-        yield from response['transactions']
+        for txn in response['transactions']:
+            yield PlaidTransaction(**txn)
+
+
+def sync_account(acct: UserPlaidAccount):
+    days_ago = 30
+    today = datetime.date.today()
+    start = today - datetime.timedelta(days=days_ago)
+
+    local_txns = Transaction.query.filter(
+        (Transaction.account_id == acct.id)
+        & (Transaction.date >= start)
+    ).all()
+    local_txns_by_plaid_id = {
+        t.plaid_txn_id: t
+        for t in local_txns
+    }
+
+    plaid_txns = list(get_transactions(
+        acct.item.access_token,
+        days_ago=days_ago,
+        account_ids=[acct.account_id],
+    ))
+
+    for pt in plaid_txns:
+        txn_id = pt.transaction_id
+        if txn_id in local_txns_by_plaid_id:
+            print(f'{txn_id}: Update existing transaction!')
+            pt.to_plaid_transaction(acct.id)
+            del local_txns_by_plaid_id[txn_id]
+        else:
+            print(f'{txn_id}: Add new local transaction from plaid!')
+            new_local_txn = pt.to_plaid_transaction(acct.id)
+            print(repr(new_local_txn))
+            db.session.add(new_local_txn)
+    db.session.commit()
+
+    for txn_id in local_txns_by_plaid_id:
+        print(f'{txn_id}: Local transaction not found in plaid!')
