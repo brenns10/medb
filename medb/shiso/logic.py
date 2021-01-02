@@ -111,6 +111,7 @@ def get_item_summary(item_id):
             summary.ineligible_accounts.append(account)
     return summary
 
+
 def link_account(user, item_id, account):
     acct = UserPlaidAccount(
         item_id=item_id,

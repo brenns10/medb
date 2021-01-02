@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 """Public section, including homepage and signup."""
-import json
-
 from flask import abort
 from flask import Blueprint
 from flask import flash
@@ -22,7 +20,6 @@ from medb.shiso.logic import get_linked_accounts
 from medb.shiso.logic import get_transactions
 from medb.shiso.logic import get_upa_by_id
 from medb.shiso.logic import link_account
-from medb.shiso.models import UserPlaidItem
 from medb.utils import flash_errors
 
 blueprint = Blueprint(
@@ -51,7 +48,6 @@ def link_accounts(item_id):
     if not item_summary:
         abort(404)
 
-    #import pdb; pdb.set_trace()
     accounts = {a['account_id']: a for a in item_summary.eligible_accounts}
     form = LinkAccountForm(request.form)
     form.link.choices = [
@@ -61,8 +57,12 @@ def link_accounts(item_id):
             link_account(current_user, item_id, accounts[account_id])
         flash('Linked accounts!', 'info')
         return redirect(url_for('.home'))
-    return render_template("shiso/plaid_item.html", item=item_summary,
-        form=form, item_id=item_id)
+    return render_template(
+        "shiso/plaid_item.html",
+        item=item_summary,
+        form=form,
+        item_id=item_id,
+    )
 
 
 @blueprint.route("/", methods=["GET"])
@@ -78,5 +78,9 @@ def account_transactions(account_id):
     account = get_upa_by_id(account_id)
     if not account or account.account.user_id != current_user.id:
         abort(404)
-    return render_template("shiso/transactions.html",
-        txns=get_transactions(account.account.access_token, [account.account_id]))
+    return render_template(
+        "shiso/transactions.html",
+        txns=get_transactions(
+            account.account.access_token, [account.account_id]
+        ),
+    )
