@@ -80,11 +80,10 @@ def account_transactions(account_id):
     account = get_upa_by_id(account_id)
     if not account or account.item.user_id != current_user.id:
         abort(404)
+    txr = get_transactions(account.item.access_token, account.account_id)
     return render_template(
         "shiso/transactions.html",
-        txns=get_transactions(
-            account.item.access_token, [account.account_id]
-        ),
+        txns=list(txr.transactions),
     )
 
 

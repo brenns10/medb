@@ -3,6 +3,7 @@
 Logic for interacting with Plaid API and the database.
 """
 import datetime
+import enum
 import json
 import typing as t
 from dataclasses import dataclass
@@ -94,6 +95,63 @@ class PlaidTransaction:
             ),
             plaid_category_id=self.category_id,
         )
+
+
+@dataclass
+class PlaidBalance:
+
+    available: t.Optional[Decimal]
+    current: Decimal
+    limit: t.Optional[Decimal]
+    iso_currency_code: t.Optional[str]
+    unofficial_currency_code: t.Optional[str]
+
+    @classmethod
+    def from_json_dict(cls, json_dict):
+        kwargs = json_dict.copy()
+        def assign_decimal(k): kwargs[k] = Decimal(str(json_dict[k]))
+        if 'available' in json_dict:
+            assign_decimal('available')
+        assign_decimal('current')
+        if 'limit' in json_dict:
+            assign_decimal('limit')
+        return cls(**kwargs)
+
+
+class PlaidAccountType(enum.Enum):
+
+    investment = 'investment'
+    credit = 'credit'
+    depository = 'depository'
+    loan = 'loan'
+    other = 'other'
+
+
+@dataclass
+class PlaidAccount:
+
+    account_id: str
+    name: str
+    balances: PlaidBalance
+    mask: str
+    type: PlaidAccountType
+    subtype: str
+    official_name: t.Optional[str] = None
+    verification_status: t.Optional[str] = None
+
+    @classmethod
+    def from_json_dict(cls, json_dict):
+        kwargs = json_dict.copy()
+        kwargs['balances'] = PlaidBalance.from_json_dict(json_dict['balances'])
+        kwargs['type'] = PlaidAccountType(json_dict['type'])
+        return cls(**kwargs)
+
+
+@dataclass
+class PlaidTransactionResponse:
+
+    account: PlaidAccount
+    transactions: t.Iterator[PlaidTransaction]
 
 
 @lru_cache(maxsize=1)
@@ -192,25 +250,34 @@ def get_upa_by_id(upa_id: int):
     ).get(upa_id)
 
 
-def get_transactions(access_token: str, account_ids: t.List[str],
-                     days_ago: int = 30) -> t.Iterator[PlaidTransaction]:
+def get_transactions(access_token: str, account_id: str,
+                     days_ago: int = 30) -> PlaidTransactionResponse:
     client = plaid_client()
     today = datetime.date.today()
     start = today - datetime.timedelta(days=days_ago)
     kwargs = dict(
         access_token=access_token, start_date=start.isoformat(),
-        end_date=today.isoformat(), account_ids=account_ids,
+        end_date=today.isoformat(), account_ids=[account_id],
     )
     response = client.Transactions.get(**kwargs)
-    offset = len(response['transactions'])
-    print(response['accounts'])
-    for txn in response['transactions']:
-        yield PlaidTransaction(**txn)
-    while offset < response['total_transactions']:
-        response = client.Transactions.get(offset=offset, **kwargs)
-        offset += len(response['transactions'])
+
+    def yield_transactions():
+        offset = len(response['transactions'])
         for txn in response['transactions']:
             yield PlaidTransaction(**txn)
+        while offset < response['total_transactions']:
+            next_response = client.Transactions.get(offset=offset, **kwargs)
+            offset += len(next_response['transactions'])
+            for txn in next_response['transactions']:
+                yield PlaidTransaction(**txn)
+    return PlaidTransactionResponse(
+        PlaidAccount.from_json_dict(response['accounts'][0]),
+        yield_transactions(),
+    )
+
+
+def initial_sync(acct: UserPlaidAccount):
+    pass
 
 
 def sync_account(acct: UserPlaidAccount):
@@ -227,13 +294,14 @@ def sync_account(acct: UserPlaidAccount):
         for t in local_txns
     }
 
-    plaid_txns = list(get_transactions(
+    plaid_txns = get_transactions(
         acct.item.access_token,
         days_ago=days_ago,
-        account_ids=[acct.account_id],
-    ))
+        account_id=acct.account_id,
+    )
+    print(f'Current bal: ${plaid_txns.account.balances.current}')
 
-    for pt in plaid_txns:
+    for pt in plaid_txns.transactions:
         txn_id = pt.transaction_id
         if txn_id in local_txns_by_plaid_id:
             print(f'{txn_id}: Update existing transaction!')
