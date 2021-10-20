@@ -6,7 +6,6 @@ import sys
 from flask import Flask, render_template
 
 import medb.user.views
-import medb.user.cli
 import medb.shiso.views
 from medb import public
 from medb.extensions import (
