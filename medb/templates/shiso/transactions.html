@@ -13,9 +13,9 @@
   <tbody>
     {% for txn in txns %}
       <tr>
-        <td>{{txn['date']}}</td>
-        <td>{{txn['name']}}</td>
-        <td class="text-right">{{'$%.2f' | format(txn['amount'])}}</td>
+        <td>{{txn.date}}</td>
+        <td>{{txn.name}}</td>
+        <td class="text-right">{{'$%.2f' | format(txn.amount)}}</td>
       </tr>
     {% endfor %}
   </tbody>
