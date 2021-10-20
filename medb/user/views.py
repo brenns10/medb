@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Public section, including homepage and signup."""
-from flask import Blueprint
 from flask import current_app
 from flask import flash
 from flask import redirect
@@ -13,12 +12,10 @@ from flask_login import login_user
 from flask_login import logout_user
 
 from medb.extensions import login_manager
+from medb.user.blueprint import blueprint
 from medb.user.forms import LoginForm
 from medb.user.models import User
 from medb.utils import flash_errors
-
-blueprint = Blueprint(
-    "user", __name__, url_prefix="/users", static_folder="../static")
 
 
 @login_manager.user_loader
