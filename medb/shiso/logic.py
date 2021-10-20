@@ -43,6 +43,7 @@ class ItemSummary(object):
     Summary of data related to an "item" in Shiso
     """
 
+    user_id: int
     institution_id: str
     institution_name: str
     item_id: str
@@ -207,6 +208,7 @@ def get_item_summary(item_id: str) -> ItemSummary:
     accounts = get_accounts(item.access_token)
     institution = get_institution(accounts['item']['institution_id'])
     summary = ItemSummary(
+        user_id=item.user_id,
         institution_id=accounts['item']['institution_id'],
         institution_name=institution['institution']['name'],
         item_id=accounts['item']['item_id'],

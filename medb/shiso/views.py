@@ -47,7 +47,7 @@ def link():
 @login_required
 def link_accounts(item_id):
     item_summary = get_item_summary(item_id)
-    if not item_summary:
+    if not item_summary or item_summary.user_id != current_user.id:
         abort(404)
 
     accounts = {a['account_id']: a for a in item_summary.eligible_accounts}
