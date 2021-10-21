@@ -262,8 +262,11 @@ def get_upa_by_id(upa_id: int):
     ).get(upa_id)
 
 
-def get_transactions(access_token: str, account_id: str,
-                     days_ago: int = 30) -> PlaidTransactionResponse:
+def get_plaid_transactions(
+    access_token: str,
+    account_id: str,
+    days_ago: int = 30,
+) -> PlaidTransactionResponse:
     client = plaid_client()
     today = datetime.date.today()
     start = today - datetime.timedelta(days=days_ago)
@@ -294,7 +297,7 @@ def initial_sync(acct: UserPlaidAccount, start_date: datetime.date):
         raise ValueError("Cannot initial sync, there are already transactions")
     today = datetime.date.today()
     days_ago = (today - start_date).days
-    plaid_txns = get_transactions(
+    plaid_txns = get_plaid_transactions(
         acct.item.access_token,
         days_ago=days_ago,
         account_id=acct.account_id,
@@ -322,7 +325,7 @@ def sync_account(acct: UserPlaidAccount):
         for t in local_txns
     }
 
-    plaid_txns = get_transactions(
+    plaid_txns = get_plaid_transactions(
         acct.item.access_token,
         days_ago=days_ago,
         account_id=acct.account_id,

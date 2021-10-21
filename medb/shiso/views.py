@@ -18,7 +18,7 @@ from medb.shiso.forms import SyncAccountForm
 from medb.shiso.logic import create_item
 from medb.shiso.logic import get_item_summary
 from medb.shiso.logic import get_linked_accounts
-from medb.shiso.logic import get_transactions
+from medb.shiso.logic import get_plaid_transactions
 from medb.shiso.logic import get_upa_by_id
 from medb.shiso.logic import initial_sync
 from medb.shiso.logic import link_account
@@ -82,7 +82,7 @@ def account_transactions(account_id):
     account = get_upa_by_id(account_id)
     if not account or account.item.user_id != current_user.id:
         abort(404)
-    txr = get_transactions(account.item.access_token, account.account_id)
+    txr = get_plaid_transactions(account.item.access_token, account.account_id)
     return render_template(
         "shiso/transactions.html",
         txns=list(txr.transactions),
