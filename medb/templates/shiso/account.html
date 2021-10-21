@@ -3,9 +3,17 @@
 {% block content %}
 <h1>Summary: {{account.name}}</h1>
 {% if account.sync_start %}
-<p>Synced, yay!</p>
+<p>Last synced {{account.sync_start}}</p>
 {% else %}
-<p>Never Synced... Sync Now?</p>
+<p>Not yet synced! Select a start date and trigger your first sync.</p>
 {% endif %}
+<form method="POST" action="{{url_for('.account_sync', account_id=account.id)}}" >
+  {{ form.csrf_token }}
+  {% if not account.sync_start %}
+    {{ form.start_date(class_="form-control") }}
+    <br/>
+  {% endif %}
+  <button class="btn btn-lg btn-primary" type="submit">Start Sync</button>
+</form>
 {% endblock %}
 {% block footer %}{% endblock %}

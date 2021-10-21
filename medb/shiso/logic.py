@@ -78,13 +78,11 @@ class PlaidTransaction:
     transaction_code: t.Optional[str] = None
 
     def to_plaid_transaction(self, acct_id: int) -> Transaction:
-        print(self.amount)
         return Transaction(
             account_id=acct_id,
             plaid_txn_id=self.transaction_id,
             amount=Decimal(str(self.amount)),
             posted=not self.pending,
-            reviewed=False,
             name=self.name,
             date=datetime.date.fromisoformat(self.date),
             plaid_payment_channel=self.payment_channel,
@@ -120,7 +118,7 @@ class PlaidBalance:
         if json_dict.get('available') is not None:
             assign_decimal('available')
         assign_decimal('current')
-        if 'limit' in json_dict:
+        if json_dict.get('limit') is not None:
             assign_decimal('limit')
         return cls(**kwargs)
 
@@ -290,14 +288,30 @@ def get_transactions(access_token: str, account_id: str,
     )
 
 
-def initial_sync(acct: UserPlaidAccount):
-    pass
+def initial_sync(acct: UserPlaidAccount, start_date: datetime.date):
+    num_txns = Transaction.query.filter(Transaction.account_id == acct.id).count()
+    if num_txns > 0:
+        raise ValueError("Cannot initial sync, there are already transactions")
+    today = datetime.date.today()
+    days_ago = (today - start_date).days
+    plaid_txns = get_transactions(
+        acct.item.access_token,
+        days_ago=days_ago,
+        account_id=acct.account_id,
+    )
+    for pt in plaid_txns.transactions:
+        db.session.add(pt.to_plaid_transaction(acct.id))
+    acct.sync_start = start_date
+    acct.sync_end = today
+    db.session.add(acct)
+    db.session.commit()
 
 
 def sync_account(acct: UserPlaidAccount):
-    days_ago = 30
     today = datetime.date.today()
-    start = today - datetime.timedelta(days=days_ago)
+    # 7 day "grace period" for any updated transactions
+    start = acct.sync_end - datetime.timedelta(days=7)
+    days_ago = (today - start).days
 
     local_txns = Transaction.query.filter(
         (Transaction.account_id == acct.id)
@@ -313,13 +327,22 @@ def sync_account(acct: UserPlaidAccount):
         days_ago=days_ago,
         account_id=acct.account_id,
     )
-    print(f'Current bal: ${plaid_txns.account.balances.current}')
 
     for pt in plaid_txns.transactions:
         txn_id = pt.transaction_id
         if txn_id in local_txns_by_plaid_id:
-            print(f'{txn_id}: Update existing transaction!')
-            pt.to_plaid_transaction(acct.id)
+            plaid_txn = pt.to_plaid_transaction(acct.id)
+            stored_txn = local_txns_by_plaid_id[txn_id]
+            if plaid_txn.date != stored_txn.date or \
+               plaid_txn.amount != stored_txn.amount or \
+               plaid_txn.plaid_merchant_name != stored_txn.plaid_merchant_name:
+                print(f'{txn_id}: Update existing transaction!')
+                stored_txn.date != plaid_txn.date
+                stored_txn.amount != plaid_txn.amount
+                stored_txn.plaid_merchant_name != plaid_txn.plaid_merchant_name
+                db.session.add(stored_txn)
+            else:
+                print(f'{txn_id}: No change')
             del local_txns_by_plaid_id[txn_id]
         else:
             print(f'{txn_id}: Add new local transaction from plaid!')

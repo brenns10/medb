@@ -70,6 +70,7 @@ class UserPlaidAccount(Model):
     name = Column(String(), nullable=False)
     kind = Column(String(10), nullable=False)
     sync_start = Column(Date, nullable=True)
+    sync_end = Column(Date, nullable=True)
     updated = Column(
         TZDateTime(), nullable=False, default=utcnow, onupdate=utcnow,
     )

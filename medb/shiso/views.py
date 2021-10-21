@@ -14,11 +14,13 @@ from medb.settings import PLAID_ENV
 from medb.settings import PLAID_PUBLIC_KEY
 from medb.shiso.forms import LinkAccountForm
 from medb.shiso.forms import LinkItemForm
+from medb.shiso.forms import SyncAccountForm
 from medb.shiso.logic import create_item
 from medb.shiso.logic import get_item_summary
 from medb.shiso.logic import get_linked_accounts
 from medb.shiso.logic import get_transactions
 from medb.shiso.logic import get_upa_by_id
+from medb.shiso.logic import initial_sync
 from medb.shiso.logic import link_account
 from medb.shiso.logic import sync_account
 from medb.user.models import User
@@ -93,7 +95,11 @@ def account_home(account_id):
     account = get_upa_by_id(account_id)
     if not account or account.item.user_id != current_user.id:
         abort(404)
-    return render_template("shiso/account.html", account=account)
+    return render_template(
+        "shiso/account.html",
+        account=account,
+        form=SyncAccountForm(),
+    )
 
 
 #from medb.shiso.models import *
@@ -117,8 +123,23 @@ def account_home(account_id):
 #        plaid_authorized_date=None,
 #        plaid_category_id="123",
 #    )
-@blueprint.route('/account/<int:account_id>/sync/')
-def sync():
-    sync_account(get_upa_by_id(1))
-    import IPython
-    IPython.embed()
+@blueprint.route('/account/<int:account_id>/sync/', methods=["POST"])
+@login_required
+def account_sync(account_id):
+    account = get_upa_by_id(account_id)
+    if not account or account.item.user_id != current_user.id:
+        abort(404)
+    form = SyncAccountForm(request.form)
+    if form.validate_on_submit():
+        if not account.sync_start:
+            if not form.start_date.data:
+                flash("You must provide start date for initial sync")
+            else:
+                initial_sync(account, form.start_date.data)
+                flash(f"Initial sync completed!", "success")
+        else:
+            sync_account(account)
+            flash("Sync completed!", "success")
+    else:
+        flash_errors(form)
+    return redirect(url_for(".account_home", account_id=account_id))
