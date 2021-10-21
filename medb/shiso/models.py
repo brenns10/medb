@@ -3,6 +3,7 @@
 Database models for "shiso"
 """
 import enum
+import datetime
 from decimal import Decimal as D
 
 import sqlalchemy.types as types
@@ -19,6 +20,29 @@ from sqlalchemy.dialects.sqlite.base import SQLiteDialect
 from medb.database import Model
 from medb.extensions import db
 from medb.user.models import User
+
+
+def utcnow():
+    return datetime.datetime.now(datetime.timezone.utc)
+
+
+class TZDateTime(types.TypeDecorator):
+    impl = types.DateTime
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            if not value.tzinfo:
+                raise TypeError("tzinfo is required")
+            value = value.astimezone(datetime.timezone.utc).replace(
+                tzinfo=None
+            )
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            value = value.replace(tzinfo=datetime.timezone.utc)
+        return value
 
 
 class UserPlaidItem(Model):
@@ -44,6 +68,10 @@ class UserPlaidAccount(Model):
 
     name = Column(String(), nullable=False)
     kind = Column(String(10), nullable=False)
+    sync_start = Column(Date, nullable=True)
+    updated = Column(
+        TZDateTime(), nullable=False, default=utcnow, onupdate=utcnow,
+    )
 
 
 class SafeNumeric(types.TypeDecorator):
@@ -95,7 +123,6 @@ class Transaction(Model):
     plaid_txn_id = Column(String(100), nullable=False)
     amount = Column(SafeNumeric(16, 3), nullable=False)
     posted = Column(Boolean, nullable=False)
-    reviewed = Column(Boolean, nullable=False)
     name = Column(String, nullable=False)
     date = Column(Date, nullable=False)
 
@@ -112,8 +139,27 @@ class Transaction(Model):
     plaid_authorized_date = Column(Date, nullable=True)
     plaid_category_id = Column(String(100), nullable=False)
 
+    updated = Column(
+        TZDateTime(), nullable=False, default=utcnow, onupdate=utcnow,
+    )
+
     account = db.relationship(
         'UserPlaidAccount', backref=db.backref('transactions', lazy=True),
+    )
+
+
+class TransactionReview(Model):
+    __tablename__ = "transaction_review"
+
+    id = Column(Integer, primary_key=True)
+    transaction_id = Column(
+        Integer, ForeignKey("user_plaid_transaction.id"), nullable=False)
+
+    reimbursement_amount = Column(SafeNumeric(16, 3), nullable=False)
+    category = Column(String(100), nullable=False)
+    notes = Column(String, nullable=True)
+    updated = Column(
+        TZDateTime(), nullable=False, default=utcnow, onupdate=utcnow,
     )
 
 

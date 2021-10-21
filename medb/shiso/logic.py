@@ -231,6 +231,7 @@ def link_account(item_id: str, account: t.Dict):
         account_id=account['account_id'],
         name=account['name'],
         kind=account['subtype'],
+        sync_start=None,
     )
     db.session.add(acct)
     db.session.commit()
