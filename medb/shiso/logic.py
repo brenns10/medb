@@ -16,6 +16,8 @@ from typing import List
 
 import plaid
 from sqlalchemy.orm import joinedload
+from sqlalchemy import and_
+from sqlalchemy import or_
 from toolz import keyfilter
 
 from medb.extensions import db
@@ -26,6 +28,7 @@ from medb.settings import PLAID_ENV
 from medb.shiso.models import Balance
 from medb.shiso.models import PaymentChannel
 from medb.shiso.models import Transaction
+from medb.shiso.models import TransactionReview
 from medb.shiso.models import UserPlaidAccount
 from medb.shiso.models import UserPlaidItem
 from medb.shiso.forms import LinkItemForm
@@ -356,3 +359,27 @@ def sync_account(acct: UserPlaidAccount):
 
     for txn_id in local_txns_by_plaid_id:
         print(f'{txn_id}: Local transaction not found in plaid!')
+
+
+def get_transactions(acct: UserPlaidAccount) -> t.List[Transaction]:
+    return Transaction.query.filter(
+        Transaction.account_id == acct.id,
+    ).order_by(
+        Transaction.date.desc(),
+        Transaction.id.desc(),
+    ).all()
+
+
+def get_unreviewed_transaction(acct: UserPlaidAccount, skip: int = 0) -> Transaction:
+    return Transaction.query.outerjoin(
+        TransactionReview
+    ).filter(and_(
+        Transaction.account_id == acct.id,
+        or_(
+            TransactionReview.id.is_(None),
+            TransactionReview.updated < Transaction.updated,
+        ),
+    )).order_by(
+        Transaction.date,
+        Transaction.id,
+    ).offset(skip).first()
