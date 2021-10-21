@@ -44,7 +44,6 @@ class ItemSummary(object):
     """
 
     user_id: int
-    institution_id: str
     institution_name: str
     item_id: str
     access_token: str
@@ -166,20 +165,6 @@ def plaid_client() -> plaid.Client:
     )
 
 
-def create_item(user: User, form: LinkItemForm) -> UserPlaidItem:
-    client = plaid_client()
-    public_token = form.public_token.data
-    exchange_response = client.Item.public_token.exchange(public_token)
-    item = UserPlaidItem(
-        user_id=user.id,
-        access_token=exchange_response['access_token'],
-        item_id=exchange_response['item_id'],
-    )
-    db.session.add(item)
-    db.session.commit()
-    return item
-
-
 def get_item(access_token: str) -> t.Any:
     client = plaid_client()
     return client.Item.get(access_token)
@@ -199,6 +184,23 @@ def is_eligible_account(acct: t.Dict) -> bool:
     return (acct['type'], acct['subtype']) in SUPPORTED_TYPES
 
 
+def create_item(user: User, form: LinkItemForm) -> UserPlaidItem:
+    client = plaid_client()
+    public_token = form.public_token.data
+    exchange_response = client.Item.public_token.exchange(public_token)
+    plaid_item = get_item(exchange_response["access_token"])
+    institution = get_institution(plaid_item["item"]["institution_id"])
+    item = UserPlaidItem(
+        user_id=user.id,
+        access_token=exchange_response['access_token'],
+        item_id=exchange_response['item_id'],
+        institution_name=institution["institution"]["name"],
+    )
+    db.session.add(item)
+    db.session.commit()
+    return item
+
+
 def get_item_summary(item_id: str) -> ItemSummary:
     item = UserPlaidItem.query.options(joinedload('accounts')).get(item_id)
     if not item:
@@ -206,11 +208,9 @@ def get_item_summary(item_id: str) -> ItemSummary:
     linked_accounts = {acct.account_id for acct in item.accounts}
 
     accounts = get_accounts(item.access_token)
-    institution = get_institution(accounts['item']['institution_id'])
     summary = ItemSummary(
         user_id=item.user_id,
-        institution_id=accounts['item']['institution_id'],
-        institution_name=institution['institution']['name'],
+        institution_name=item.institution_name,
         item_id=accounts['item']['item_id'],
         access_token=item.access_token,
     )
@@ -223,6 +223,12 @@ def get_item_summary(item_id: str) -> ItemSummary:
         else:
             summary.ineligible_accounts.append(account)
     return summary
+
+
+def get_plaid_items(user: User) -> t.List[UserPlaidItem]:
+    return UserPlaidItem.query.filter(
+        UserPlaidItem.user_id == user.id
+    ).all()
 
 
 def link_account(item_id: str, account: t.Dict):
@@ -238,13 +244,11 @@ def link_account(item_id: str, account: t.Dict):
 
 
 def get_linked_accounts(user: User):
-    user_items = UserPlaidItem.query.filter(
+    return UserPlaidAccount.query.join(
+        UserPlaidItem
+    ).filter(
         UserPlaidItem.user_id == user.id
     ).all()
-    user_accounts = UserPlaidAccount.query.filter(
-        UserPlaidAccount.item_id.in_([it.id for it in user_items])
-    ).all()
-    return user_accounts
 
 
 def get_upa_by_id(upa_id: int):

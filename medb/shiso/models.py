@@ -54,6 +54,7 @@ class UserPlaidItem(Model):
 
     access_token = Column(String(100), nullable=False)
     item_id = Column(String(100), nullable=False)
+    institution_name = Column(String, nullable=False)
 
 
 class UserPlaidAccount(Model):
