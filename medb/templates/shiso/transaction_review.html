@@ -5,6 +5,10 @@
   <table class="table table-striped">
     <tbody>
       <tr>
+        <th scope="row">Account</td>
+        <td>{{txn.account.name}}</td>
+      </tr>
+      <tr>
         <th scope="row">Merchant</td>
         <td>{{txn.plaid_merchant_name}}</td>
       </tr>
@@ -49,7 +53,13 @@
       {{ form.notes.label }}
       {{ form.notes(class_="form-control") }}
     </div>
-    <button class="btn btn-lg btn-primary" type="submit">Review</button>
+    <div class="form-group">
+      <button class="btn btn-lg btn-primary" type="submit">Review</button>
+      <a class="btn btn-lg btn-danger"
+         href="{{url_for('.account_transactions', account_id=txn.account.id)}}">
+        Account Summary
+      </a>
+    </div>
   </form>
 {% endblock %}
 {% block footer %}{% endblock %}
