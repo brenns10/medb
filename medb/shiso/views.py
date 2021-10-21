@@ -18,8 +18,8 @@ from medb.shiso.forms import SyncAccountForm
 from medb.shiso.forms import TransactionReviewForm
 from medb.shiso.logic import create_item
 from medb.shiso.logic import get_item_summary
-from medb.shiso.logic import get_linked_accounts
 from medb.shiso.logic import get_next_unreviewed_transaction
+from medb.shiso.logic import get_plaid_items
 from medb.shiso.logic import get_transactions
 from medb.shiso.logic import get_transaction
 from medb.shiso.logic import get_upa_by_id
@@ -92,8 +92,8 @@ def link_accounts(item_id):
 @blueprint.route("/", methods=["GET"])
 @login_required
 def home():
-    accts = get_linked_accounts(current_user)
-    return render_template("shiso/home.html", accounts=accts)
+    items = get_plaid_items(current_user)
+    return render_template("shiso/home.html", items=items)
 
 
 @blueprint.route("/account/<int:account_id>/", methods=["GET"])

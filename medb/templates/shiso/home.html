@@ -2,12 +2,15 @@
 {% block title %}Shiso{% endblock %}
 {% block content %}
 <h1>Shiso</h1>
-<p>Your linked accounts:</p>
-<ul>
-  {% for acct in accounts %}
+<p>Your linked institutions and accounts:</p>
+{% for item in items %}
+  <a href="{{url_for('.link_accounts', item_id=item.id)}}">{{item.institution_name}}</a>
+  <ul>
+    {% for acct in item.accounts %}
     <li><a href="{{url_for('.account_transactions', account_id=acct.id)}}">{{acct.name}}</a></li>
-  {% endfor %}
-</ul>
-<a href="{{url_for('.link')}}">Link new financial institution</a>
+    {% endfor %}
+  </ul>
+{% endfor %}
+<a class="btn btn-md btn-primary" href="{{url_for('.link')}}">Link new financial institution</a>
 {% endblock %}
 {% block footer %}{% endblock %}

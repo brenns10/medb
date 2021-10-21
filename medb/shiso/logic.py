@@ -235,7 +235,9 @@ def get_item_summary(item_id: str) -> ItemSummary:
 
 
 def get_plaid_items(user: User) -> t.List[UserPlaidItem]:
-    return UserPlaidItem.query.filter(
+    return UserPlaidItem.query.options(
+        db.joinedload(UserPlaidItem.accounts)
+    ).filter(
         UserPlaidItem.user_id == user.id
     ).all()
 
@@ -250,14 +252,6 @@ def link_account(item_id: str, account: t.Dict):
     )
     db.session.add(acct)
     db.session.commit()
-
-
-def get_linked_accounts(user: User):
-    return UserPlaidAccount.query.join(
-        UserPlaidItem
-    ).filter(
-        UserPlaidItem.user_id == user.id
-    ).all()
 
 
 def get_upa_by_id(upa_id: int):
