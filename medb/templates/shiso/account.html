@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+{% block title %}{{account.name}} - Shiso Account Summary{% endblock %}
+{% block content %}
+<h1>Summary: {{account.name}}</h1>
+{% if account.sync_start %}
+<p>Synced, yay!</p>
+{% else %}
+<p>Never Synced... Sync Now?</p>
+{% endif %}
+{% endblock %}
+{% block footer %}{% endblock %}

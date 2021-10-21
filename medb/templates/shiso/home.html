@@ -5,7 +5,7 @@
 <p>Your linked accounts:</p>
 <ul>
   {% for acct in accounts %}
-    <li><a href="{{url_for('.account_transactions', account_id=acct.id)}}">{{acct.name}}</a></li>
+    <li><a href="{{url_for('.account_home', account_id=acct.id)}}">{{acct.name}}</a></li>
   {% endfor %}
 </ul>
 <a href="{{url_for('.link')}}">Link new financial institution</a>

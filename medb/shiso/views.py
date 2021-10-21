@@ -74,7 +74,7 @@ def home():
     return render_template("shiso/home.html", accounts=accts)
 
 
-@blueprint.route("/account/<int:account_id>/", methods=["GET"])
+@blueprint.route("/account/<int:account_id>/transactions/", methods=["GET"])
 @login_required
 def account_transactions(account_id):
     account = get_upa_by_id(account_id)
@@ -85,6 +85,15 @@ def account_transactions(account_id):
         "shiso/transactions.html",
         txns=list(txr.transactions),
     )
+
+
+@blueprint.route("/account/<int:account_id>/", methods=["GET"])
+@login_required
+def account_home(account_id):
+    account = get_upa_by_id(account_id)
+    if not account or account.item.user_id != current_user.id:
+        abort(404)
+    return render_template("shiso/account.html", account=account)
 
 
 #from medb.shiso.models import *
@@ -108,7 +117,7 @@ def account_transactions(account_id):
 #        plaid_authorized_date=None,
 #        plaid_category_id="123",
 #    )
-@blueprint.cli.command('sync')
+@blueprint.route('/account/<int:account_id>/sync/')
 def sync():
     sync_account(get_upa_by_id(1))
     import IPython

@@ -2,6 +2,7 @@
 """
 Logic for interacting with Plaid API and the database.
 """
+import dataclasses
 import datetime
 import enum
 import json
@@ -15,6 +16,7 @@ from typing import List
 
 import plaid
 from sqlalchemy.orm import joinedload
+from toolz import keyfilter
 
 from medb.extensions import db
 from medb.settings import PLAID_CLIENT_ID
@@ -96,6 +98,11 @@ class PlaidTransaction:
             plaid_category_id=self.category_id,
         )
 
+    @classmethod
+    def create(cls, d) -> "PlaidTransaction":
+        fields = {f.name for f in dataclasses.fields(cls)}
+        return cls(**keyfilter(fields.__contains__, d))
+
 
 @dataclass
 class PlaidBalance:
@@ -110,7 +117,7 @@ class PlaidBalance:
     def from_json_dict(cls, json_dict):
         kwargs = json_dict.copy()
         def assign_decimal(k): kwargs[k] = Decimal(str(json_dict[k]))
-        if 'available' in json_dict:
+        if json_dict.get('available') is not None:
             assign_decimal('available')
         assign_decimal('current')
         if 'limit' in json_dict:
@@ -271,12 +278,12 @@ def get_transactions(access_token: str, account_id: str,
     def yield_transactions():
         offset = len(response['transactions'])
         for txn in response['transactions']:
-            yield PlaidTransaction(**txn)
+            yield PlaidTransaction.create(txn)
         while offset < response['total_transactions']:
             next_response = client.Transactions.get(offset=offset, **kwargs)
             offset += len(next_response['transactions'])
             for txn in next_response['transactions']:
-                yield PlaidTransaction(**txn)
+                yield PlaidTransaction.create(txn)
     return PlaidTransactionResponse(
         PlaidAccount.from_json_dict(response['accounts'][0]),
         yield_transactions(),

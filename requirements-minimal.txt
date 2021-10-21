@@ -8,4 +8,5 @@ flask-sqlalchemy
 flask-wtf
 plaid-python<5
 sqlalchemy
+toolz
 wtforms
