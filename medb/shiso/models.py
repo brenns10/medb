@@ -146,8 +146,12 @@ class Transaction(Model):
     )
 
     account = db.relationship(
-        'UserPlaidAccount', backref=db.backref('transactions', lazy=True),
+        'UserPlaidAccount', backref=db.backref('transactions', lazy='select'),
     )
+
+    @property
+    def needs_review(self):
+        return self.review is None or self.review.updated < self.updated
 
 
 class TransactionReview(Model):
@@ -156,6 +160,11 @@ class TransactionReview(Model):
     id = Column(Integer, primary_key=True)
     transaction_id = Column(
         Integer, ForeignKey("user_plaid_transaction.id"), nullable=False)
+    transaction = db.relationship(
+        "Transaction",
+        backref=db.backref("review", uselist=False),
+        lazy="select",
+    )
 
     reimbursement_amount = Column(SafeNumeric(16, 3), nullable=False)
     category = Column(String(100), nullable=False)

@@ -5,6 +5,7 @@
 <table class="table table-striped table-hover">
   <thead>
     <tr>
+      <th scope="col">NR?</th>
       <th scope="col">Date</th>
       <th scope="col">Name</th>
       <th class="text-right" scope="col">Amount</th>
@@ -13,6 +14,7 @@
   <tbody>
     {% for txn in txns %}
       <tr>
+        <td>{% if txn.needs_review %}Y{% else %}N{% endif %}</td>
         <td>{{txn.date}}</td>
         <td>{{txn.name}}</td>
         <td class="text-right">{{'$%.2f' | format(txn.amount)}}</td>
