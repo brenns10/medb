@@ -96,14 +96,18 @@ def home():
     return render_template("shiso/home.html", accounts=accts)
 
 
-@blueprint.route("/account/<int:account_id>/transactions/", methods=["GET"])
+@blueprint.route("/account/<int:account_id>/", methods=["GET"])
 @login_required
 def account_transactions(account_id):
     account = _view_fetch_account(account_id)
     txr = get_transactions(account)
+    next_unreviewed = get_next_unreviewed_transaction(account)
     return render_template(
         "shiso/transactions.html",
         txns=txr,
+        account=account,
+        form=SyncAccountForm(),
+        next_unreviewed=next_unreviewed,
     )
 
 @blueprint.route("/account/<int:account_id>/review/", methods=["GET"])
@@ -115,7 +119,7 @@ def account_review(account_id):
         return redirect(url_for(".review_transaction", txn_id=txn.id))
     else:
         flash("All transactions are reviewed!")
-        return redirect(url_for(".account_home", account_id=account.id))
+        return redirect(url_for(".account_transactions", account_id=account.id))
 
 
 @blueprint.route("/transaction/<int:txn_id>/review/", methods=["GET", "POST"])
@@ -146,17 +150,6 @@ def review_transaction(txn_id):
             form=form,
             txn=txn,
         )
-
-
-@blueprint.route("/account/<int:account_id>/", methods=["GET"])
-@login_required
-def account_home(account_id):
-    account = _view_fetch_account(account_id)
-    return render_template(
-        "shiso/account.html",
-        account=account,
-        form=SyncAccountForm(),
-    )
 
 
 #from medb.shiso.models import *
@@ -197,4 +190,4 @@ def account_sync(account_id):
             flash("Sync completed!", "success")
     else:
         flash_errors(form)
-    return redirect(url_for(".account_home", account_id=account_id))
+    return redirect(url_for(".account_transactions", account_id=account_id))

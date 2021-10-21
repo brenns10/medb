@@ -1,7 +1,30 @@
 {% extends "layout.html" %}
-{% block title %}Shiso Transaction Overview{% endblock %}
+{% block title %}{{ account.name }} - Account Overview - Shiso{% endblock %}
 {% block content %}
-<h1>Shiso Transaction Overview</h1>
+<h1>{{ account.name }} - Account Overview</h1>
+{% if account.sync_start %}
+<p>Last synced {{account.sync_start}}</p>
+{% else %}
+<p>Not yet synced!</p>
+{% endif %}
+<form method="POST" action="{{url_for('.account_sync', account_id=account.id)}}" >
+  {{ form.csrf_token }}
+  {% if not account.sync_start %}
+    <div class="form-group">
+    {{ form.start_date.label }}
+    {{ form.start_date(class_="form-control") }}
+    </div>
+  {% endif %}
+  <div class="form-group">
+    <button class="btn btn-lg btn-primary" type="submit">Start Sync</button>
+    {% if account.sync_start and next_unreviewed %}
+    <a class="btn btn-lg btn-info"
+       href="{{ url_for('.account_review', account_id=account.id) }}">
+      Review Transactions
+    </a>
+    {% endif %}
+  </div>
+</form>
 <table class="table table-striped table-hover">
   <thead>
     <tr>
@@ -14,7 +37,10 @@
   <tbody>
     {% for txn in txns %}
       <tr>
-        <td>{% if txn.needs_review %}Y{% else %}N{% endif %}</td>
+        <td>
+          <a href="{{url_for('.review_transaction', txn_id=txn.id)}}">
+            {% if txn.needs_review %}Y{% else %}N{% endif %}
+        </td>
         <td>{{txn.date}}</td>
         <td>{{txn.name}}</td>
         <td class="text-right">{{'$%.2f' | format(txn.amount)}}</td>
