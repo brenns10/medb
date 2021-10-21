@@ -22,6 +22,21 @@ from medb.extensions import db
 from medb.user.models import User
 
 
+TRANSACTION_CATEGORIES = [
+    "Transport",
+    "Entertainment",
+    "Vacation",
+    "Dining",
+    "Groceries",
+    "Rent",
+    "Bills & Utilities",
+    "Medical",
+    "Shopping",
+    "Gifts",
+    "Income",
+]
+
+
 def utcnow():
     return datetime.datetime.now(datetime.timezone.utc)
 

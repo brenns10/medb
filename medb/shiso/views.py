@@ -15,19 +15,39 @@ from medb.settings import PLAID_PUBLIC_KEY
 from medb.shiso.forms import LinkAccountForm
 from medb.shiso.forms import LinkItemForm
 from medb.shiso.forms import SyncAccountForm
+from medb.shiso.forms import TransactionReviewForm
 from medb.shiso.logic import create_item
 from medb.shiso.logic import get_item_summary
 from medb.shiso.logic import get_linked_accounts
+from medb.shiso.logic import get_next_unreviewed_transaction
 from medb.shiso.logic import get_transactions
+from medb.shiso.logic import get_transaction
 from medb.shiso.logic import get_upa_by_id
 from medb.shiso.logic import initial_sync
 from medb.shiso.logic import link_account
+from medb.shiso.logic import review_transaction as do_review_transaction
 from medb.shiso.logic import sync_account
+from medb.shiso.models import Transaction
+from medb.shiso.models import UserPlaidAccount
 from medb.user.models import User
 from medb.utils import flash_errors
 
 blueprint = Blueprint(
     "shiso", __name__, url_prefix="/shiso", static_folder="../static")
+
+
+def _view_fetch_account(account_id: int) -> UserPlaidAccount:
+    account = get_upa_by_id(account_id)
+    if not account or account.item.user_id != current_user.id:
+        abort(404)
+    return account
+
+
+def _view_fetch_transaction(txn_id: int) -> Transaction:
+    txn = get_transaction(txn_id)
+    if not txn or txn.account.item.user_id != current_user.id:
+        abort(404)
+    return txn
 
 
 @blueprint.route("/link/", methods=["GET", "POST"])
@@ -79,22 +99,59 @@ def home():
 @blueprint.route("/account/<int:account_id>/transactions/", methods=["GET"])
 @login_required
 def account_transactions(account_id):
-    account = get_upa_by_id(account_id)
-    if not account or account.item.user_id != current_user.id:
-        abort(404)
+    account = _view_fetch_account(account_id)
     txr = get_transactions(account)
     return render_template(
         "shiso/transactions.html",
         txns=txr,
     )
 
+@blueprint.route("/account/<int:account_id>/review/", methods=["GET"])
+@login_required
+def account_review(account_id):
+    account = _view_fetch_account(account_id)
+    txn = get_next_unreviewed_transaction(account)
+    if txn:
+        return redirect(url_for(".review_transaction", txn_id=txn.id))
+    else:
+        flash("All transactions are reviewed!")
+        return redirect(url_for(".account_home", account_id=account.id))
+
+
+@blueprint.route("/transaction/<int:txn_id>/review/", methods=["GET", "POST"])
+@login_required
+def review_transaction(txn_id):
+    txn = _view_fetch_transaction(txn_id)
+    if request.method == "GET":
+        form = TransactionReviewForm.create(txn, None)
+        return render_template(
+            "shiso/transaction_review.html",
+            form=form,
+            txn=txn,
+        )
+    form = TransactionReviewForm.create(txn, request.form)
+    if form.validate_on_submit():
+        do_review_transaction(txn, form)
+        next_ = get_next_unreviewed_transaction(txn.account, after=txn)
+        if next_:
+            flash("Success, reviewing next transaction now", "info")
+            return redirect(url_for(".review_transaction", txn_id=next_.id))
+        else:
+            flash("Success, all transactions reviewed", "info")
+            return redirect(url_for(".account_transactions", account_id=txn.account.id))
+    else:
+        flash_errors(form)
+        return render_template(
+            "shiso/transaction_review.html",
+            form=form,
+            txn=txn,
+        )
+
 
 @blueprint.route("/account/<int:account_id>/", methods=["GET"])
 @login_required
 def account_home(account_id):
-    account = get_upa_by_id(account_id)
-    if not account or account.item.user_id != current_user.id:
-        abort(404)
+    account = _view_fetch_account(account_id)
     return render_template(
         "shiso/account.html",
         account=account,
@@ -126,9 +183,7 @@ def account_home(account_id):
 @blueprint.route('/account/<int:account_id>/sync/', methods=["POST"])
 @login_required
 def account_sync(account_id):
-    account = get_upa_by_id(account_id)
-    if not account or account.item.user_id != current_user.id:
-        abort(404)
+    account = _view_fetch_account(account_id)
     form = SyncAccountForm(request.form)
     if form.validate_on_submit():
         if not account.sync_start:

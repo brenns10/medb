@@ -32,6 +32,7 @@ from medb.shiso.models import TransactionReview
 from medb.shiso.models import UserPlaidAccount
 from medb.shiso.models import UserPlaidItem
 from medb.shiso.forms import LinkItemForm
+from medb.shiso.forms import TransactionReviewForm
 from medb.user.models import User
 
 
@@ -362,7 +363,9 @@ def sync_account(acct: UserPlaidAccount):
 
 
 def get_transactions(acct: UserPlaidAccount) -> t.List[Transaction]:
-    return Transaction.query.filter(
+    return Transaction.query.options(
+        db.joinedload(Transaction.review),
+    ).filter(
         Transaction.account_id == acct.id,
     ).order_by(
         Transaction.date.desc(),
@@ -370,8 +373,19 @@ def get_transactions(acct: UserPlaidAccount) -> t.List[Transaction]:
     ).all()
 
 
-def get_unreviewed_transaction(acct: UserPlaidAccount, skip: int = 0) -> Transaction:
-    return Transaction.query.outerjoin(
+def get_transaction(txn_id) -> t.Optional[Transaction]:
+    return Transaction.query.options(
+        db.joinedload(Transaction.review),
+    ).get(txn_id)
+
+
+def get_next_unreviewed_transaction(
+    acct: UserPlaidAccount,
+    after: t.Optional[Transaction] = None,
+) -> Transaction:
+    query = Transaction.query.options(
+        db.joinedload(Transaction.review)
+    ).outerjoin(
         TransactionReview
     ).filter(and_(
         Transaction.account_id == acct.id,
@@ -379,7 +393,34 @@ def get_unreviewed_transaction(acct: UserPlaidAccount, skip: int = 0) -> Transac
             TransactionReview.id.is_(None),
             TransactionReview.updated < Transaction.updated,
         ),
-    )).order_by(
+    ))
+    if after is not None:
+        query = query.filter(and_(
+            Transaction.date >= after.date,
+        ))
+    return query.order_by(
         Transaction.date,
         Transaction.id,
-    ).offset(skip).first()
+    ).first()
+
+
+def review_transaction(txn: Transaction, review: TransactionReviewForm):
+    if review.reimbursement_type.data == "None":
+        amt = Decimal(0)
+    elif review.reimbursement_type.data == "Half":
+        amt = txn.amount / 2
+    elif review.reimbursement_type.data == "Full":
+        amt = txn.amount
+    else:
+        amt = review.reimbursement_amount.data
+        assert Decimal(0) <= amt <= txn.amount
+    if txn.review:
+        rev = txn.review
+    else:
+        rev = TransactionReview()
+    rev.transaction_id = txn.id
+    rev.reimbursement_amount = amt
+    rev.category = review.category.data
+    rev.notes = review.notes.data
+    db.session.add(rev)
+    db.session.commit()

@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+{% block title %}Transaction Review{% endblock %}
+{% block content %}
+  <h1>Transaction Review</h1>
+  <table class="table table-striped">
+    <tbody>
+      <tr>
+        <th scope="row">Merchant</td>
+        <td>{{txn.plaid_merchant_name}}</td>
+      </tr>
+      <tr>
+        <th scope="row">Transaction Name</td>
+        <td>{{txn.name}}</td>
+      </tr>
+      <tr>
+        <th scope="row">Amount</td>
+        <td>{{'$%.2f' | format(txn.amount)}}</td>
+      </tr>
+      <tr>
+        <th scope="row">Date</td>
+        <td>{{txn.date}}</td>
+      </tr>
+      <tr>
+        <th scope="row">Posted</td>
+        <td>{% if txn.posted %}Yes{% else %}No{% endif %}</td>
+      </tr>
+    </tbody>
+  </table>
+  <form method="POST" action="{{url_for('.review_transaction', txn_id=txn.id)}}">
+    {{form.csrf_token}}
+    {% macro show_radio(radio) %}
+      {{ radio.label }}
+      <div class="form-group">
+      {% for subfield in radio %}
+        <div class="form-check form-check-inline">
+          {{ subfield(class_="form-check-input") }}
+          {{ subfield.label(class_="form-check-label") }}
+        </div>
+      {% endfor %}
+     </div>
+    {%- endmacro %}
+    {{ show_radio(form.reimbursement_type) }}
+    <div class="form-group">
+      {{form.reimbursement_amount.label}}
+      {{ form.reimbursement_amount(class_="form-control") }}
+    </div>
+    {{ show_radio(form.category) }}
+    <div class="form-group">
+      {{ form.notes.label }}
+      {{ form.notes(class_="form-control") }}
+    </div>
+    <button class="btn btn-lg btn-primary" type="submit">Review</button>
+  </form>
+{% endblock %}
+{% block footer %}{% endblock %}
