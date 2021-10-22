@@ -79,7 +79,7 @@ def link():
 
 @blueprint.route("/plaid_item/<item_id>/", methods=["GET", "POST"])
 @login_required
-def link_accounts(item_id):
+def link_accounts(item_id: int):
     item_summary = get_item_summary(item_id)
     if not item_summary or item_summary.user_id != current_user.id:
         abort(404)
@@ -111,7 +111,7 @@ def home():
 
 @blueprint.route("/account/<int:account_id>/", methods=["GET"])
 @login_required
-def account_transactions(account_id):
+def account_transactions(account_id: int):
     account = _view_fetch_account(account_id)
     txr = get_transactions(account)
     next_unreviewed = get_next_unreviewed_transaction(account)
@@ -126,7 +126,7 @@ def account_transactions(account_id):
 
 @blueprint.route("/account/<int:account_id>/rename/", methods=["GET", "POST"])
 @login_required
-def account_rename(account_id):
+def account_rename(account_id: int):
     account = _view_fetch_account(account_id)
     form = AccountRenameForm(request.form, data={"name": account.name})
     if form.validate_on_submit():
@@ -141,7 +141,7 @@ def account_rename(account_id):
 
 @blueprint.route("/account/<int:account_id>/review/", methods=["GET"])
 @login_required
-def account_review(account_id):
+def account_review(account_id: int):
     account = _view_fetch_account(account_id)
     txn = get_next_unreviewed_transaction(account)
     if txn:
@@ -153,7 +153,7 @@ def account_review(account_id):
 
 @blueprint.route("/transaction/<int:txn_id>/review/", methods=["GET", "POST"])
 @login_required
-def review_transaction(txn_id):
+def review_transaction(txn_id: int):
     txn = _view_fetch_transaction(txn_id)
     if request.method == "GET":
         form = TransactionReviewForm.create(txn, None)
@@ -185,7 +185,7 @@ def review_transaction(txn_id):
 
 @blueprint.route("/account/<int:account_id>/sync/", methods=["POST"])
 @login_required
-def account_sync(account_id):
+def account_sync(account_id: int):
     account = _view_fetch_account(account_id)
     form = SyncAccountForm(request.form)
     if form.validate_on_submit():
@@ -205,7 +205,7 @@ def account_sync(account_id):
 
 @blueprint.route("/account/<int:account_id>/report/", methods=["GET"])
 @login_required
-def account_report(account_id):
+def account_report(account_id: int):
     account = _view_fetch_account(account_id)
     today = date.today()
     start = today.replace(day=1)

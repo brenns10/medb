@@ -7,12 +7,13 @@ import typing as t
 
 from flask_wtf import FlaskForm
 from wtforms.fields.html5 import DateField
-from wtforms import DecimalField
-from wtforms import Form
-from wtforms import HiddenField
-from wtforms import RadioField
-from wtforms import SelectMultipleField
-from wtforms import StringField
+from wtforms.fields import Field
+from wtforms.fields import DecimalField
+from wtforms.form import Form
+from wtforms.fields import HiddenField
+from wtforms.fields import RadioField
+from wtforms.fields import SelectMultipleField
+from wtforms.fields import StringField
 from wtforms.validators import DataRequired
 from wtforms.validators import NumberRange
 from wtforms.validators import Optional
@@ -34,8 +35,8 @@ class LinkAccountForm(FlaskForm):
     link = SelectMultipleField("Accounts to link")
 
 
-def _date_within(td: timedelta):
-    def __date_within(form, field):
+def _date_within(td: timedelta) -> t.Callable[[Form, Field], None]:
+    def __date_within(form: Form, field: Field) -> None:
         latest = date.today()
         earliest = latest - td
         if earliest <= field.data <= latest:
@@ -48,10 +49,10 @@ def _date_within(td: timedelta):
 
 
 class _deferred_str:
-    def __init__(self, c):
+    def __init__(self, c: t.Callable[[], str]):
         self.c = c
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.c()
 
 
@@ -87,14 +88,16 @@ class TransactionReviewForm(FlaskForm):
     )
     notes = StringField()
 
-    def validate_reimbursement_amount(self, field):
+    def validate_reimbursement_amount(self, field: Field):
         if self.reimbursement_type.data == "Custom" and not field.data:
             raise ValidationError(
                 "You must provide a custom reimbursement amount"
             )
 
     @classmethod
-    def create(cls, txn: Transaction, formdata: t.Any):
+    def create(
+        cls, txn: Transaction, formdata: t.Any
+    ) -> "TransactionReviewForm":
         data = {}
         if txn.review:
             if txn.review.reimbursement_amount == txn.amount:
@@ -124,7 +127,7 @@ class AccountReportForm(Form):
     start_date = DateField("Report Start")
     end_date = DateField("Report End")
 
-    def validate_end_date(self, field):
+    def validate_end_date(self, field: Field):
         if self.end_date.data < self.start_date.data:
             raise ValidationError("Start date must come before end date")
 
@@ -141,7 +144,7 @@ class TransactionListForm(Form):
         validators=[Optional()],
     )
 
-    def validate_end_date(self, field):
+    def validate_end_date(self, field: Field):
         if self.end_date.data < self.start_date.data:
             raise ValidationError("Start date must come before end date")
 
