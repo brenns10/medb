@@ -2,8 +2,8 @@
 {% block title %}{{ account.name }} - Account Overview - Shiso{% endblock %}
 {% block content %}
 <h1>{{ account.name }} - Account Overview</h1>
-{% if account.sync_start %}
-<p>Last synced {{account.sync_start}}</p>
+{% if account.sync_end %}
+<p>Last synced {{account.sync_end}}</p>
 {% else %}
 <p>Not yet synced!</p>
 {% endif %}

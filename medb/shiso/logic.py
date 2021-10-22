@@ -406,6 +406,8 @@ def sync_account(acct: UserPlaidAccount) -> SyncReport:
             report.new += 1
             new_local_txn = pt.to_plaid_transaction(acct.id)
             db.session.add(new_local_txn)
+    acct.sync_end = today
+    db.session.add(acct)
     db.session.commit()
 
     for txn_id in local_txns_by_plaid_id:
