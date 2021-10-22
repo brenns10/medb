@@ -237,7 +237,13 @@ def all_account_report():
     form = AccountReportForm(request.args, data=data)
     if not form.validate():
         flash_errors(form)
-        return render_template("shiso/report.html", account=account, form=form, report=None)
+        return render_template(
+            "shiso/report.html",
+            account_name="All Accounts",
+            form_url=url_for(".all_account_report"),
+            form=form,
+            report=None,
+        )
     transactions = get_all_user_transactions(
         current_user,
         form.start_date.data,
