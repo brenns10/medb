@@ -1,1 +1,0 @@
-import medb.user.views

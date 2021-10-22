@@ -10,8 +10,8 @@ from flask_wtf.csrf import CSRFProtect
 bcrypt = Bcrypt()
 csrf_protect = CSRFProtect()
 login_manager = LoginManager()
-login_manager.login_view = 'user.login'
-login_manager.login_message_category = 'info'
+login_manager.login_view = "user.login"
+login_manager.login_message_category = "info"
 db = SQLAlchemy()
 migrate = Migrate()
 debug_toolbar = DebugToolbarExtension()

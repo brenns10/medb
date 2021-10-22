@@ -19,7 +19,6 @@ from sqlalchemy.dialects.sqlite.base import SQLiteDialect
 
 from medb.database import Model
 from medb.extensions import db
-from medb.user.models import User
 
 
 TRANSACTION_CATEGORIES = [
@@ -51,9 +50,7 @@ class TZDateTime(types.TypeDecorator):
         if value is not None:
             if not value.tzinfo:
                 raise TypeError("tzinfo is required")
-            value = value.astimezone(datetime.timezone.utc).replace(
-                tzinfo=None
-            )
+            value = value.astimezone(datetime.timezone.utc).replace(tzinfo=None)
         return value
 
     def process_result_value(self, value, dialect):
@@ -66,8 +63,8 @@ class UserPlaidItem(Model):
     __tablename__ = "user_plaid_item"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
-    user = db.relationship('User', backref=db.backref('plaid_items', lazy=True))
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    user = db.relationship("User", backref=db.backref("plaid_items", lazy=True))
 
     access_token = Column(String(100), nullable=False)
     item_id = Column(String(100), nullable=False)
@@ -78,18 +75,22 @@ class UserPlaidAccount(Model):
     __tablename__ = "user_plaid_account"
 
     id = Column(Integer, primary_key=True)
-    item_id = Column(Integer, ForeignKey('user_plaid_item.id'), nullable=False)
+    item_id = Column(Integer, ForeignKey("user_plaid_item.id"), nullable=False)
 
     account_id = Column(String(100), nullable=False)
     item: UserPlaidItem = db.relationship(
-        'UserPlaidItem', backref=db.backref('accounts', lazy=True))
+        "UserPlaidItem", backref=db.backref("accounts", lazy=True)
+    )
 
     name = Column(String(), nullable=False)
     kind = Column(String(10), nullable=False)
     sync_start = Column(Date, nullable=True)
     sync_end = Column(Date, nullable=True)
     updated = Column(
-        TZDateTime(), nullable=False, default=utcnow, onupdate=utcnow,
+        TZDateTime(),
+        nullable=False,
+        default=utcnow,
+        onupdate=utcnow,
     )
 
 
@@ -111,7 +112,7 @@ class SafeNumeric(types.TypeDecorator):
         if value is None:
             return None
         if not isinstance(value, D):
-            raise TypeError('Numeric literals should be decimal')
+            raise TypeError("Numeric literals should be decimal")
         if isinstance(dialect, SQLiteDialect):
             return int(value.shift(self._scale))
         else:
@@ -127,9 +128,9 @@ class SafeNumeric(types.TypeDecorator):
 
 
 class PaymentChannel(enum.Enum):
-    online = 'online'
-    in_store = 'in store'
-    other = 'other'
+    online = "online"
+    in_store = "in store"
+    other = "other"
 
 
 class Transaction(Model):
@@ -137,7 +138,8 @@ class Transaction(Model):
 
     id = Column(Integer, primary_key=True)
     account_id = Column(
-        Integer, ForeignKey('user_plaid_account.id'), nullable=False)
+        Integer, ForeignKey("user_plaid_account.id"), nullable=False
+    )
 
     plaid_txn_id = Column(String(100), nullable=False)
     amount = Column(SafeNumeric(16, 3), nullable=False)
@@ -147,10 +149,9 @@ class Transaction(Model):
 
     plaid_payment_channel = Column(
         Enum(
-            PaymentChannel,
-            values_callable=lambda obj: [e.value for e in obj]
+            PaymentChannel, values_callable=lambda obj: [e.value for e in obj]
         ),
-        nullable=False
+        nullable=False,
     )
     plaid_payment_meta = Column(String, nullable=False)  # json
     plaid_merchant_name = Column(String, nullable=True)
@@ -159,11 +160,15 @@ class Transaction(Model):
     plaid_category_id = Column(String(100), nullable=False)
 
     updated = Column(
-        TZDateTime(), nullable=False, default=utcnow, onupdate=utcnow,
+        TZDateTime(),
+        nullable=False,
+        default=utcnow,
+        onupdate=utcnow,
     )
 
     account = db.relationship(
-        'UserPlaidAccount', backref=db.backref('transactions', lazy='select'),
+        "UserPlaidAccount",
+        backref=db.backref("transactions", lazy="select"),
     )
 
     @property
@@ -191,19 +196,21 @@ class TransactionReview(Model):
     category = Column(String(100), nullable=False)
     notes = Column(String, nullable=True)
     updated = Column(
-        TZDateTime(), nullable=False, default=utcnow, onupdate=utcnow,
+        TZDateTime(),
+        nullable=False,
+        default=utcnow,
+        onupdate=utcnow,
     )
 
 
 class Balance(Model):
     __tablename__ = "account_balance"
-    __table_args__ = (
-        db.UniqueConstraint('account_id', 'date'),
-    )
+    __table_args__ = (db.UniqueConstraint("account_id", "date"),)
 
     id = Column(Integer, primary_key=True)
     account_id = Column(
-        Integer, ForeignKey('user_plaid_account.id'), nullable=False)
+        Integer, ForeignKey("user_plaid_account.id"), nullable=False
+    )
 
     amount = Column(Numeric(16, 3), nullable=False)
     date = Column(Date, nullable=False)

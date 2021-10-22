@@ -18,7 +18,8 @@ from medb.user.models import User
 from medb.utils import flash_errors
 
 blueprint = Blueprint(
-    "user", __name__, url_prefix="/users", static_folder="../static")
+    "user", __name__, url_prefix="/users", static_folder="../static"
+)
 
 
 @login_manager.user_loader
@@ -38,12 +39,12 @@ def login():
             flash("You are logged in.", "success")
             # NOTE: could accept a "next" for redirect, but for simplicity
             # (and security, ish) omitted this
-            return redirect(url_for('public.home'))
+            return redirect(url_for("public.home"))
         else:
             flash_errors(form)
     elif current_user.is_authenticated:
-        flash('You are already logged in', 'info')
-        return redirect(url_for('public.home'))
+        flash("You are already logged in", "info")
+        return redirect(url_for("public.home"))
     return render_template("user/login.html", form=form)
 
 

@@ -38,12 +38,11 @@ from medb.shiso.logic import review_transaction as do_review_transaction
 from medb.shiso.logic import sync_account
 from medb.shiso.models import Transaction
 from medb.shiso.models import UserPlaidAccount
-from medb.shiso.models import TRANSACTION_CATEGORIES
-from medb.user.models import User
 from medb.utils import flash_errors
 
 blueprint = Blueprint(
-    "shiso", __name__, url_prefix="/shiso", static_folder="../static")
+    "shiso", __name__, url_prefix="/shiso", static_folder="../static"
+)
 
 
 def _view_fetch_account(account_id: int) -> UserPlaidAccount:
@@ -67,12 +66,15 @@ def link():
     if request.method == "POST":
         if form.validate_on_submit():
             item = create_item(current_user, form)
-            return redirect(url_for('.link_accounts', item_id=item.id))
+            return redirect(url_for(".link_accounts", item_id=item.id))
         else:
             flash_errors(form)
     return render_template(
-        "shiso/link.html", form=form, plaid_environment=PLAID_ENV,
-        plaid_public_key=PLAID_PUBLIC_KEY)
+        "shiso/link.html",
+        form=form,
+        plaid_environment=PLAID_ENV,
+        plaid_public_key=PLAID_PUBLIC_KEY,
+    )
 
 
 @blueprint.route("/plaid_item/<item_id>/", methods=["GET", "POST"])
@@ -82,15 +84,16 @@ def link_accounts(item_id):
     if not item_summary or item_summary.user_id != current_user.id:
         abort(404)
 
-    accounts = {a['account_id']: a for a in item_summary.eligible_accounts}
+    accounts = {a["account_id"]: a for a in item_summary.eligible_accounts}
     form = LinkAccountForm(request.form)
     form.link.choices = [
-        (a['account_id'], a['name']) for a in item_summary.eligible_accounts]
+        (a["account_id"], a["name"]) for a in item_summary.eligible_accounts
+    ]
     if form.validate_on_submit():
         for account_id in form.link.data:
             link_account(item_id, accounts[account_id])
-        flash('Linked accounts!', 'info')
-        return redirect(url_for('.home'))
+        flash("Linked accounts!", "info")
+        return redirect(url_for(".home"))
     return render_template(
         "shiso/plaid_item.html",
         item=item_summary,
@@ -120,6 +123,7 @@ def account_transactions(account_id):
         next_unreviewed=next_unreviewed,
     )
 
+
 @blueprint.route("/account/<int:account_id>/rename/", methods=["GET", "POST"])
 @login_required
 def account_rename(account_id):
@@ -130,7 +134,10 @@ def account_rename(account_id):
         db.session.add(account)
         db.session.commit()
         return redirect(url_for(".account_transactions", account_id=account_id))
-    return render_template("shiso/account_rename.html", form=form, account_id=account_id)
+    return render_template(
+        "shiso/account_rename.html", form=form, account_id=account_id
+    )
+
 
 @blueprint.route("/account/<int:account_id>/review/", methods=["GET"])
 @login_required
@@ -164,7 +171,9 @@ def review_transaction(txn_id):
             return redirect(url_for(".review_transaction", txn_id=next_.id))
         else:
             flash("Success, all transactions reviewed", "info")
-            return redirect(url_for(".account_transactions", account_id=txn.account.id))
+            return redirect(
+                url_for(".account_transactions", account_id=txn.account.id)
+            )
     else:
         flash_errors(form)
         return render_template(
@@ -174,7 +183,7 @@ def review_transaction(txn_id):
         )
 
 
-#from medb.shiso.models import *
+# from medb.shiso.models import *
 #    from datetime import date
 #    from decimal import Decimal
 #    from medb.extensions import db
@@ -195,7 +204,7 @@ def review_transaction(txn_id):
 #        plaid_authorized_date=None,
 #        plaid_category_id="123",
 #    )
-@blueprint.route('/account/<int:account_id>/sync/', methods=["POST"])
+@blueprint.route("/account/<int:account_id>/sync/", methods=["POST"])
 @login_required
 def account_sync(account_id):
     account = _view_fetch_account(account_id)
@@ -206,7 +215,7 @@ def account_sync(account_id):
                 flash("You must provide start date for initial sync")
             else:
                 initial_sync(account, form.start_date.data)
-                flash(f"Initial sync completed!", "success")
+                flash("Initial sync completed!", "success")
         else:
             sync_account(account)
             flash("Sync completed!", "success")
@@ -228,8 +237,12 @@ def account_report(account_id):
     form = AccountReportForm(request.args, data=data)
     if not form.validate():
         flash_errors(form)
-        return render_template("shiso/report.html", account=account, form=form, report=None)
-    transactions = get_transactions(account, form.start_date.data, form.end_date.data)
+        return render_template(
+            "shiso/report.html", account=account, form=form, report=None
+        )
+    transactions = get_transactions(
+        account, form.start_date.data, form.end_date.data
+    )
     report = compute_transaction_report(transactions)
     return render_template(
         "shiso/report.html",
@@ -243,7 +256,7 @@ def account_report(account_id):
             "start_date": form.start_date.data,
             "end_date": form.end_date.data,
             "accounts": [account_id],
-        }
+        },
     )
 
 
@@ -318,5 +331,5 @@ def all_account_report():
         txn_args={
             "start_date": form.start_date.data,
             "end_date": form.end_date.data,
-        }
+        },
     )

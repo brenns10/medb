@@ -8,7 +8,7 @@ from environs import Env
 
 env = Env()
 env.read_env()
-env.read_env('.env.secret', override=True)
+env.read_env(".env.secret", override=True)
 
 ENV = env.str("FLASK_ENV", default="production")
 DEBUG = ENV == "development"
@@ -19,9 +19,9 @@ DEBUG_TB_ENABLED = DEBUG
 DEBUG_TB_INTERCEPT_REDIRECTS = False
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-PLAID_CLIENT_ID = env.str('PLAID_CLIENT_ID')
-PLAID_SECRET = env.str('PLAID_SECRET')
-PLAID_PUBLIC_KEY = env.str('PLAID_PUBLIC_KEY')
-PLAID_PRODUCTS = env.str('PLAID_PRODUCTS')
-PLAID_COUNTRY_CODES = env.str('PLAID_COUNTRY_CODES')
-PLAID_ENV = env.str('PLAID_ENV')
+PLAID_CLIENT_ID = env.str("PLAID_CLIENT_ID")
+PLAID_SECRET = env.str("PLAID_SECRET")
+PLAID_PUBLIC_KEY = env.str("PLAID_PUBLIC_KEY")
+PLAID_PRODUCTS = env.str("PLAID_PRODUCTS")
+PLAID_COUNTRY_CODES = env.str("PLAID_COUNTRY_CODES")
+PLAID_ENV = env.str("PLAID_ENV")

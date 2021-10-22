@@ -25,7 +25,6 @@ from medb.settings import PLAID_CLIENT_ID
 from medb.settings import PLAID_SECRET
 from medb.settings import PLAID_PUBLIC_KEY
 from medb.settings import PLAID_ENV
-from medb.shiso.models import Balance
 from medb.shiso.models import PaymentChannel
 from medb.shiso.models import Transaction
 from medb.shiso.models import TransactionReview
@@ -37,9 +36,9 @@ from medb.user.models import User
 
 
 SUPPORTED_TYPES = {
-    ('credit', 'credit card'),
-    ('depository', 'checking'),
-    ('depository', 'savings'),
+    ("credit", "credit card"),
+    ("depository", "checking"),
+    ("depository", "savings"),
 }
 
 
@@ -94,7 +93,8 @@ class PlaidTransaction:
             plaid_merchant_name=self.merchant_name,
             plaid_location=json.dumps(self.location),
             plaid_authorized_date=(
-                None if self.authorized_date is None
+                None
+                if self.authorized_date is None
                 else datetime.date.fromisoformat(self.authorized_date)
             ),
             plaid_category_id=self.category_id,
@@ -118,22 +118,25 @@ class PlaidBalance:
     @classmethod
     def from_json_dict(cls, json_dict):
         kwargs = json_dict.copy()
-        def assign_decimal(k): kwargs[k] = Decimal(str(json_dict[k]))
-        if json_dict.get('available') is not None:
-            assign_decimal('available')
-        assign_decimal('current')
-        if json_dict.get('limit') is not None:
-            assign_decimal('limit')
+
+        def assign_decimal(k):
+            kwargs[k] = Decimal(str(json_dict[k]))
+
+        if json_dict.get("available") is not None:
+            assign_decimal("available")
+        assign_decimal("current")
+        if json_dict.get("limit") is not None:
+            assign_decimal("limit")
         return cls(**kwargs)
 
 
 class PlaidAccountType(enum.Enum):
 
-    investment = 'investment'
-    credit = 'credit'
-    depository = 'depository'
-    loan = 'loan'
-    other = 'other'
+    investment = "investment"
+    credit = "credit"
+    depository = "depository"
+    loan = "loan"
+    other = "other"
 
 
 @dataclass
@@ -151,8 +154,8 @@ class PlaidAccount:
     @classmethod
     def from_json_dict(cls, json_dict):
         kwargs = json_dict.copy()
-        kwargs['balances'] = PlaidBalance.from_json_dict(json_dict['balances'])
-        kwargs['type'] = PlaidAccountType(json_dict['type'])
+        kwargs["balances"] = PlaidBalance.from_json_dict(json_dict["balances"])
+        kwargs["type"] = PlaidAccountType(json_dict["type"])
         return cls(**kwargs)
 
 
@@ -170,7 +173,7 @@ def plaid_client() -> plaid.Client:
         secret=PLAID_SECRET,
         public_key=PLAID_PUBLIC_KEY,
         environment=PLAID_ENV,
-        api_version='2018-05-22'
+        api_version="2018-05-22",
     )
 
 
@@ -190,7 +193,7 @@ def get_institution(ins_id: str) -> t.Any:
 
 
 def is_eligible_account(acct: t.Dict) -> bool:
-    return (acct['type'], acct['subtype']) in SUPPORTED_TYPES
+    return (acct["type"], acct["subtype"]) in SUPPORTED_TYPES
 
 
 def create_item(user: User, form: LinkItemForm) -> UserPlaidItem:
@@ -201,8 +204,8 @@ def create_item(user: User, form: LinkItemForm) -> UserPlaidItem:
     institution = get_institution(plaid_item["item"]["institution_id"])
     item = UserPlaidItem(
         user_id=user.id,
-        access_token=exchange_response['access_token'],
-        item_id=exchange_response['item_id'],
+        access_token=exchange_response["access_token"],
+        item_id=exchange_response["item_id"],
         institution_name=institution["institution"]["name"],
     )
     db.session.add(item)
@@ -210,8 +213,8 @@ def create_item(user: User, form: LinkItemForm) -> UserPlaidItem:
     return item
 
 
-def get_item_summary(item_id: str) -> ItemSummary:
-    item = UserPlaidItem.query.options(joinedload('accounts')).get(item_id)
+def get_item_summary(item_id: str) -> t.Optional[ItemSummary]:
+    item = UserPlaidItem.query.options(joinedload("accounts")).get(item_id)
     if not item:
         return None
     linked_accounts = {acct.account_id for acct in item.accounts}
@@ -220,12 +223,12 @@ def get_item_summary(item_id: str) -> ItemSummary:
     summary = ItemSummary(
         user_id=item.user_id,
         institution_name=item.institution_name,
-        item_id=accounts['item']['item_id'],
+        item_id=accounts["item"]["item_id"],
         access_token=item.access_token,
     )
-    for account in accounts['accounts']:
+    for account in accounts["accounts"]:
         if is_eligible_account(account):
-            if account['account_id'] in linked_accounts:
+            if account["account_id"] in linked_accounts:
                 summary.linked_accounts.append(account)
             else:
                 summary.eligible_accounts.append(account)
@@ -235,19 +238,19 @@ def get_item_summary(item_id: str) -> ItemSummary:
 
 
 def get_plaid_items(user: User) -> t.List[UserPlaidItem]:
-    return UserPlaidItem.query.options(
-        db.joinedload(UserPlaidItem.accounts)
-    ).filter(
-        UserPlaidItem.user_id == user.id
-    ).all()
+    return (
+        UserPlaidItem.query.options(db.joinedload(UserPlaidItem.accounts))
+        .filter(UserPlaidItem.user_id == user.id)
+        .all()
+    )
 
 
 def link_account(item_id: str, account: t.Dict):
     acct = UserPlaidAccount(
         item_id=item_id,
-        account_id=account['account_id'],
-        name=account['name'],
-        kind=account['subtype'],
+        account_id=account["account_id"],
+        name=account["name"],
+        kind=account["subtype"],
         sync_start=None,
     )
     db.session.add(acct)
@@ -255,17 +258,15 @@ def link_account(item_id: str, account: t.Dict):
 
 
 def get_linked_accounts(user_id: int):
-    return UserPlaidAccount.query.join(
-        UserPlaidItem
-    ).filter(
-        UserPlaidItem.user_id == user_id
-    ).all()
+    return (
+        UserPlaidAccount.query.join(UserPlaidItem)
+        .filter(UserPlaidItem.user_id == user_id)
+        .all()
+    )
 
 
 def get_upa_by_id(upa_id: int):
-    return UserPlaidAccount.query.options(
-        joinedload('item')
-    ).get(upa_id)
+    return UserPlaidAccount.query.options(joinedload("item")).get(upa_id)
 
 
 def get_plaid_transactions(
@@ -277,28 +278,33 @@ def get_plaid_transactions(
     today = datetime.date.today()
     start = today - datetime.timedelta(days=days_ago)
     kwargs = dict(
-        access_token=access_token, start_date=start.isoformat(),
-        end_date=today.isoformat(), account_ids=[account_id],
+        access_token=access_token,
+        start_date=start.isoformat(),
+        end_date=today.isoformat(),
+        account_ids=[account_id],
     )
     response = client.Transactions.get(**kwargs)
 
     def yield_transactions():
-        offset = len(response['transactions'])
-        for txn in response['transactions']:
+        offset = len(response["transactions"])
+        for txn in response["transactions"]:
             yield PlaidTransaction.create(txn)
-        while offset < response['total_transactions']:
+        while offset < response["total_transactions"]:
             next_response = client.Transactions.get(offset=offset, **kwargs)
-            offset += len(next_response['transactions'])
-            for txn in next_response['transactions']:
+            offset += len(next_response["transactions"])
+            for txn in next_response["transactions"]:
                 yield PlaidTransaction.create(txn)
+
     return PlaidTransactionResponse(
-        PlaidAccount.from_json_dict(response['accounts'][0]),
+        PlaidAccount.from_json_dict(response["accounts"][0]),
         yield_transactions(),
     )
 
 
 def initial_sync(acct: UserPlaidAccount, start_date: datetime.date):
-    num_txns = Transaction.query.filter(Transaction.account_id == acct.id).count()
+    num_txns = Transaction.query.filter(
+        Transaction.account_id == acct.id
+    ).count()
     if num_txns > 0:
         raise ValueError("Cannot initial sync, there are already transactions")
     today = datetime.date.today()
@@ -323,13 +329,9 @@ def sync_account(acct: UserPlaidAccount):
     days_ago = (today - start).days
 
     local_txns = Transaction.query.filter(
-        (Transaction.account_id == acct.id)
-        & (Transaction.date >= start)
+        (Transaction.account_id == acct.id) & (Transaction.date >= start)
     ).all()
-    local_txns_by_plaid_id = {
-        t.plaid_txn_id: t
-        for t in local_txns
-    }
+    local_txns_by_plaid_id = {t.plaid_txn_id: t for t in local_txns}
 
     plaid_txns = get_plaid_transactions(
         acct.item.access_token,
@@ -342,28 +344,31 @@ def sync_account(acct: UserPlaidAccount):
         if txn_id in local_txns_by_plaid_id:
             plaid_txn = pt.to_plaid_transaction(acct.id)
             stored_txn = local_txns_by_plaid_id[txn_id]
-            if plaid_txn.date != stored_txn.date or \
-               plaid_txn.amount != stored_txn.amount or \
-               plaid_txn.posted != stored_txn.posted or \
-               plaid_txn.plaid_merchant_name != stored_txn.plaid_merchant_name:
-                print(f'{txn_id}: Update existing transaction!')
+            if (
+                plaid_txn.date != stored_txn.date
+                or plaid_txn.amount != stored_txn.amount
+                or plaid_txn.posted != stored_txn.posted
+                or plaid_txn.plaid_merchant_name
+                != stored_txn.plaid_merchant_name
+            ):
+                print(f"{txn_id}: Update existing transaction!")
                 stored_txn.date = plaid_txn.date
                 stored_txn.amount = plaid_txn.amount
                 stored_txn.posted = plaid_txn.posted
                 stored_txn.plaid_merchant_name = plaid_txn.plaid_merchant_name
                 db.session.add(stored_txn)
             else:
-                print(f'{txn_id}: No change')
+                print(f"{txn_id}: No change")
             del local_txns_by_plaid_id[txn_id]
         else:
-            print(f'{txn_id}: Add new local transaction from plaid!')
+            print(f"{txn_id}: Add new local transaction from plaid!")
             new_local_txn = pt.to_plaid_transaction(acct.id)
             print(repr(new_local_txn))
             db.session.add(new_local_txn)
     db.session.commit()
 
     for txn_id in local_txns_by_plaid_id:
-        print(f'{txn_id}: Local transaction not found in plaid!')
+        print(f"{txn_id}: Local transaction not found in plaid!")
 
 
 def get_transactions(
@@ -377,13 +382,9 @@ def get_transactions(
         Transaction.account_id == acct.id,
     )
     if start_date:
-        query = query.filter(
-            Transaction.date >= start_date
-        )
+        query = query.filter(Transaction.date >= start_date)
     if end_date:
-        query = query.filter(
-            Transaction.date <= end_date
-        )
+        query = query.filter(Transaction.date <= end_date)
     return query.order_by(
         Transaction.date.desc(),
         Transaction.id.desc(),
@@ -400,21 +401,25 @@ def get_next_unreviewed_transaction(
     acct: UserPlaidAccount,
     after: t.Optional[Transaction] = None,
 ) -> Transaction:
-    query = Transaction.query.options(
-        db.joinedload(Transaction.review)
-    ).outerjoin(
-        TransactionReview
-    ).filter(and_(
-        Transaction.account_id == acct.id,
-        or_(
-            TransactionReview.id.is_(None),
-            TransactionReview.updated < Transaction.updated,
-        ),
-    ))
+    query = (
+        Transaction.query.options(db.joinedload(Transaction.review))
+        .outerjoin(TransactionReview)
+        .filter(
+            and_(
+                Transaction.account_id == acct.id,
+                or_(
+                    TransactionReview.id.is_(None),
+                    TransactionReview.updated < Transaction.updated,
+                ),
+            )
+        )
+    )
     if after is not None:
-        query = query.filter(and_(
-            Transaction.date >= after.date,
-        ))
+        query = query.filter(
+            and_(
+                Transaction.date >= after.date,
+            )
+        )
     return query.order_by(
         Transaction.date,
         Transaction.id,
@@ -450,29 +455,29 @@ def get_all_user_transactions(
     categories: t.Optional[t.Container[str]] = None,
     accounts: t.Optional[t.Container[int]] = None,
 ) -> t.List[Transaction]:
-    query = Transaction.query.options(
-        db.joinedload(Transaction.review),
-    ).join(
-        Transaction.account,
-    ).join(
-        UserPlaidAccount.item,
-    ).join(
-        Transaction.review,
-    ).filter(
-        UserPlaidItem.user_id == user.id,
+    query = (
+        Transaction.query.options(
+            db.joinedload(Transaction.review),
+        )
+        .join(
+            Transaction.account,
+        )
+        .join(
+            UserPlaidAccount.item,
+        )
+        .join(
+            Transaction.review,
+        )
+        .filter(
+            UserPlaidItem.user_id == user.id,
+        )
     )
     if start_date:
-        query = query.filter(
-            Transaction.date >= start_date
-        )
+        query = query.filter(Transaction.date >= start_date)
     if end_date:
-        query = query.filter(
-            Transaction.date <= end_date
-        )
+        query = query.filter(Transaction.date <= end_date)
     if categories:
-        query = query.filter(
-            TransactionReview.category.in_(categories)
-        )
+        query = query.filter(TransactionReview.category.in_(categories))
     if accounts:
         query = query.filter(
             UserPlaidAccount.id.in_(accounts),
@@ -501,7 +506,7 @@ class TransactionReport:
 
 
 def compute_transaction_report(txns: t.List[Transaction]) -> TransactionReport:
-    categories = set()
+    categories_set = set()
     txns = txns[:]
     unreviewed_net = Decimal(0)
     unreviewed_count = 0
@@ -511,9 +516,9 @@ def compute_transaction_report(txns: t.List[Transaction]) -> TransactionReport:
             unreviewed_count += 1
             del txns[i]
         else:
-            categories.add(txns[i].review.category)
+            categories_set.add(txns[i].review.category)
 
-    categories = sorted(categories)
+    categories = sorted(categories_set)
     all_net = Decimal(0)
     share_net = Decimal(0)
     reimbursed_net = Decimal(0)
@@ -526,8 +531,12 @@ def compute_transaction_report(txns: t.List[Transaction]) -> TransactionReport:
         share_net += txn.amount - txn.review.reimbursement_amount
         reimbursed_net += txn.review.reimbursement_amount
         all_categorized[txn.review.category] += txn.amount
-        share_categorized[txn.review.category] += txn.amount - txn.review.reimbursement_amount
-        reimbursed_categorized[txn.review.category] += txn.review.reimbursement_amount
+        share_categorized[txn.review.category] += (
+            txn.amount - txn.review.reimbursement_amount
+        )
+        reimbursed_categorized[
+            txn.review.category
+        ] += txn.review.reimbursement_amount
 
     return TransactionReport(
         transactions=txns,

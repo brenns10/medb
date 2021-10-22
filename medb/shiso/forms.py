@@ -31,7 +31,7 @@ class LinkItemForm(FlaskForm):
 class LinkAccountForm(FlaskForm):
     """Link account form."""
 
-    link = SelectMultipleField('Accounts to link')
+    link = SelectMultipleField("Accounts to link")
 
 
 def _date_within(td: timedelta):
@@ -41,16 +41,18 @@ def _date_within(td: timedelta):
         if earliest <= field.data <= latest:
             return
         raise ValidationError(
-            f"Date must be between {earliest:%Y-%m-%d} and {latest:%Y-%m-%d}")
+            f"Date must be between {earliest:%Y-%m-%d} and {latest:%Y-%m-%d}"
+        )
+
     return __date_within
 
 
 class _deferred_str:
     def __init__(self, c):
         self.c = c
+
     def __str__(self):
         return self.c()
-
 
 
 class SyncAccountForm(FlaskForm):
@@ -63,7 +65,9 @@ class SyncAccountForm(FlaskForm):
         validators=[Optional(), _date_within(timedelta(days=365))],
         render_kw={
             "max": _deferred_str(lambda: str(date.today())),
-            "min": _deferred_str(lambda: str(date.today() - timedelta(days=365))),
+            "min": _deferred_str(
+                lambda: str(date.today() - timedelta(days=365))
+            ),
         },
     )
 
@@ -78,12 +82,16 @@ class TransactionReviewForm(FlaskForm):
         validators=[DataRequired()],
     )
     reimbursement_amount = DecimalField(places=2, validators=[Optional()])
-    category = RadioField(choices=TRANSACTION_CATEGORIES, validators=[DataRequired()])
+    category = RadioField(
+        choices=TRANSACTION_CATEGORIES, validators=[DataRequired()]
+    )
     notes = StringField()
 
     def validate_reimbursement_amount(self, field):
         if self.reimbursement_type.data == "Custom" and not field.data:
-            raise ValidationError("You must provide a custom reimbursement amount")
+            raise ValidationError(
+                "You must provide a custom reimbursement amount"
+            )
 
     @classmethod
     def create(cls, txn: Transaction, formdata: t.Any):
@@ -101,7 +109,9 @@ class TransactionReviewForm(FlaskForm):
             data["notes"] = txn.review.notes
             data["category"] = txn.review.category
         form = cls(formdata, data=data)
-        form.reimbursement_amount.validators = list(form.reimbursement_amount.validators)
+        form.reimbursement_amount.validators = list(
+            form.reimbursement_amount.validators
+        )
         form.reimbursement_amount.validators.append(
             NumberRange(min=Decimal(0), max=txn.amount)
         )

@@ -21,15 +21,15 @@ def home():
     return render_template("home.html")
 
 
-@blueprint.cli.command('init')
+@blueprint.cli.command("init")
 def cmd_init():
-    print('Create database...')
+    print("Create database...")
     db.create_all()
-    print('done.')
-    print('Create initial user')
-    username = input('username: ')
-    email = input('email: ')
-    password = getpass.getpass('password: ')
+    print("done.")
+    print("Create initial user")
+    username = input("username: ")
+    email = input("email: ")
+    password = getpass.getpass("password: ")
     user = User(username=username, email=email, password=password)
     db.session.add(user)
     db.session.commit()
