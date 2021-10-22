@@ -19,8 +19,9 @@ from medb.shiso.forms import LinkAccountForm
 from medb.shiso.forms import LinkItemForm
 from medb.shiso.forms import SyncAccountForm
 from medb.shiso.forms import TransactionReviewForm
-from medb.shiso.logic import compute_account_report
+from medb.shiso.logic import compute_transaction_report
 from medb.shiso.logic import create_item
+from medb.shiso.logic import get_all_user_transactions
 from medb.shiso.logic import get_item_summary
 from medb.shiso.logic import get_next_unreviewed_transaction
 from medb.shiso.logic import get_plaid_items
@@ -212,10 +213,41 @@ def account_report(account_id):
         flash_errors(form)
         return render_template("shiso/report.html", account=account, form=form, report=None)
     transactions = get_transactions(account, form.start_date.data, form.end_date.data)
-    report = compute_account_report(account, transactions)
+    report = compute_transaction_report(transactions)
     return render_template(
         "shiso/report.html",
-        account=account,
+        account_name=account.name,
+        form_url=url_for(".account_report", account_id=account.id),
+        form=form,
+        report=report,
+        start_date=form.start_date.data,
+        end_date=form.end_date.data,
+    )
+
+
+@blueprint.route("/report/", methods=["GET"])
+@login_required
+def all_account_report():
+    today = date.today()
+    start = today.replace(day=1)
+    data = {
+        "start_date": start,
+        "end_date": today,
+    }
+    form = AccountReportForm(request.args, data=data)
+    if not form.validate():
+        flash_errors(form)
+        return render_template("shiso/report.html", account=account, form=form, report=None)
+    transactions = get_all_user_transactions(
+        current_user,
+        form.start_date.data,
+        form.end_date.data,
+    )
+    report = compute_transaction_report(transactions)
+    return render_template(
+        "shiso/report.html",
+        account_name="All Accounts",
+        form_url=url_for(".all_account_report"),
         form=form,
         report=report,
         start_date=form.start_date.data,

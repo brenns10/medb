@@ -1,8 +1,8 @@
 {% extends "layout.html" %}
-{% block title %}{{ account.name }} - Transaction Report - Shiso{% endblock %}
+{% block title %}{{ account_name }} - Transaction Report - Shiso{% endblock %}
 {% block content %}
-<h1>{{ account.name }} - Transaction Report</h1>
-<form method="GET" action="{{url_for('.account_report', account_id=account.id)}}" >
+<h1>{{ account_name }} - Transaction Report</h1>
+<form method="GET" action="{{form_url}}" >
   <div class="form-group">
     <div class="form-group">
     {{ form.start_date.label }}
@@ -50,7 +50,7 @@
       Note: this report ignores {{report.unreviewed_count}} transactions which
       have not been reviewed, and thus have no data. They account for
       {{'$%.2f' | format(report.unreviewed_net)}} of transactions. Please review
-      the transactions of this account to make sure the report is complete.
+      those transactions to make sure the report is complete.
     </p>
   {% endif %}
 {% endif %}

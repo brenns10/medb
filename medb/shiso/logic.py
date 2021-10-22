@@ -435,10 +435,37 @@ def review_transaction(txn: Transaction, review: TransactionReviewForm):
     db.session.commit()
 
 
-@dataclass
-class AccountReport:
+def get_all_user_transactions(
+    user: User,
+    start_date: t.Optional[datetime.date] = None,
+    end_date: t.Optional[datetime.date] = None,
+) -> t.List[Transaction]:
+    query = Transaction.query.options(
+        db.joinedload(Transaction.review),
+    ).join(
+        Transaction.account,
+    ).join(
+        UserPlaidAccount.item,
+    ).filter(
+        UserPlaidItem.user_id == user.id,
+    )
+    if start_date:
+        query = query.filter(
+            Transaction.date >= start_date
+        )
+    if end_date:
+        query = query.filter(
+            Transaction.date <= end_date
+        )
+    return query.order_by(
+        Transaction.date.desc(),
+        Transaction.id.desc(),
+    ).all()
 
-    account: UserPlaidAccount
+
+@dataclass
+class TransactionReport:
+
     transactions: t.List[Transaction]
 
     all_net: Decimal
@@ -453,7 +480,7 @@ class AccountReport:
     reimbursed_categorized: t.Dict[str, Decimal]
 
 
-def compute_account_report(account: UserPlaidAccount, txns: t.List[Transaction]) -> AccountReport:
+def compute_transaction_report(txns: t.List[Transaction]) -> TransactionReport:
     categories = set()
     txns = txns[:]
     unreviewed_net = Decimal(0)
@@ -482,8 +509,7 @@ def compute_account_report(account: UserPlaidAccount, txns: t.List[Transaction])
         share_categorized[txn.review.category] += txn.amount - txn.review.reimbursement_amount
         reimbursed_categorized[txn.review.category] += txn.review.reimbursement_amount
 
-    return AccountReport(
-        account=account,
+    return TransactionReport(
         transactions=txns,
         all_net=all_net,
         share_net=share_net,
