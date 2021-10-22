@@ -8,7 +8,7 @@ from environs import Env
 
 env = Env()
 env.read_env()
-env.read_env('.env.secret')
+env.read_env('.env.secret', override=True)
 
 ENV = env.str("FLASK_ENV", default="production")
 DEBUG = ENV == "development"
