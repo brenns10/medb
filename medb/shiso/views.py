@@ -183,27 +183,6 @@ def review_transaction(txn_id):
         )
 
 
-# from medb.shiso.models import *
-#    from datetime import date
-#    from decimal import Decimal
-#    from medb.extensions import db
-#    user = User.query.get(1)
-#    a = UserPlaidAccount.query.get(1)
-#    t = Transaction(
-#        account_id=a.id,
-#        plaid_txn_id='abc',
-#        amount=Decimal('123.56'),
-#        posted=False,
-#        reviewed=False,
-#        name='Stephen Sample Transaction',
-#        date=date(2021, 1, 1),
-#        plaid_payment_channel=PaymentChannel.online,
-#        plaid_payment_meta="{}",
-#        plaid_merchant_name=None,
-#        plaid_location="{}",
-#        plaid_authorized_date=None,
-#        plaid_category_id="123",
-#    )
 @blueprint.route("/account/<int:account_id>/sync/", methods=["POST"])
 @login_required
 def account_sync(account_id):
