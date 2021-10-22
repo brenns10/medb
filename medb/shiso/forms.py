@@ -1,26 +1,26 @@
 # -*- coding: utf-8 -*-
 """Public forms."""
+import typing as t
 from datetime import date
 from datetime import timedelta
 from decimal import Decimal
-import typing as t
 
 from flask_wtf import FlaskForm
-from wtforms.fields.html5 import DateField
-from wtforms.fields import Field
 from wtforms.fields import DecimalField
-from wtforms.form import Form
+from wtforms.fields import Field
 from wtforms.fields import HiddenField
 from wtforms.fields import RadioField
 from wtforms.fields import SelectMultipleField
 from wtforms.fields import StringField
+from wtforms.fields.html5 import DateField
+from wtforms.form import Form
 from wtforms.validators import DataRequired
 from wtforms.validators import NumberRange
 from wtforms.validators import Optional
 from wtforms.validators import ValidationError
 
-from .models import TRANSACTION_CATEGORIES
 from .models import Transaction
+from .models import TRANSACTION_CATEGORIES
 
 
 class LinkItemForm(FlaskForm):

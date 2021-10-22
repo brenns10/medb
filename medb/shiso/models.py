@@ -2,8 +2,8 @@
 """
 Database models for "shiso"
 """
-import enum
 import datetime
+import enum
 from decimal import Decimal as D
 
 import sqlalchemy.types as types

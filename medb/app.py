@@ -3,19 +3,18 @@
 import logging
 import sys
 
-from flask import Flask, render_template
+from flask import Flask
+from flask import render_template
 
-import medb.user.views
 import medb.shiso.views
+import medb.user.views
 from medb import public
-from medb.extensions import (
-    bcrypt,
-    csrf_protect,
-    db,
-    debug_toolbar,
-    login_manager,
-    migrate,
-)
+from medb.extensions import bcrypt
+from medb.extensions import csrf_protect
+from medb.extensions import db
+from medb.extensions import debug_toolbar
+from medb.extensions import login_manager
+from medb.extensions import migrate
 
 
 def create_app(config_object="medb.settings"):

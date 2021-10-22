@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """Public forms."""
 from flask_wtf import FlaskForm
-from wtforms import PasswordField, StringField
+from wtforms import PasswordField
+from wtforms import StringField
 from wtforms.validators import DataRequired
 
 from medb.user.models import User

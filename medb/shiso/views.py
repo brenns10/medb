@@ -12,9 +12,6 @@ from flask import url_for
 from flask_login import current_user
 from flask_login import login_required
 
-from medb.extensions import db
-from medb.settings import PLAID_ENV
-from medb.settings import PLAID_PUBLIC_KEY
 from .forms import AccountRenameForm
 from .forms import AccountReportForm
 from .forms import LinkAccountForm
@@ -29,8 +26,8 @@ from .logic import get_item_summary
 from .logic import get_linked_accounts
 from .logic import get_next_unreviewed_transaction
 from .logic import get_plaid_items
-from .logic import get_transactions
 from .logic import get_transaction
+from .logic import get_transactions
 from .logic import get_upa_by_id
 from .logic import initial_sync
 from .logic import link_account
@@ -38,6 +35,9 @@ from .logic import review_transaction as do_review_transaction
 from .logic import sync_account
 from .models import Transaction
 from .models import UserPlaidAccount
+from medb.extensions import db
+from medb.settings import PLAID_ENV
+from medb.settings import PLAID_PUBLIC_KEY
 from medb.utils import flash_errors
 
 blueprint = Blueprint(
