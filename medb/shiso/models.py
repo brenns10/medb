@@ -35,6 +35,7 @@ TRANSACTION_CATEGORIES = [
     "Gifts",
     "Income",
     "Transfer",
+    "Pet",
 ]
 
 
