@@ -444,6 +444,7 @@ def review_transaction(txn: Transaction, review: TransactionReviewForm):
     rev.reimbursement_amount = amt
     rev.category = review.category.data
     rev.notes = review.notes.data
+    rev.mark_updated()
     db.session.add(rev)
     db.session.commit()
 

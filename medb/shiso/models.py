@@ -202,6 +202,9 @@ class TransactionReview(Model):
         onupdate=utcnow,
     )
 
+    def mark_updated(self):
+        self.updated = utcnow()
+
 
 class Balance(Model):
     __tablename__ = "account_balance"
