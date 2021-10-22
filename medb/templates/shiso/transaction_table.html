@@ -1,0 +1,27 @@
+<table class="table table-striped table-hover">
+  <thead>
+    <tr>
+      <th scope="col"></th>
+      <th scope="col">Date</th>
+      <th scope="col">Name</th>
+      <th scope="col">Category</th>
+      <th class="text-right" scope="col">Amount</th>
+      <th class="text-right" scope="col">Reimburse</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for txn in txns %}
+      <tr>
+        <td>
+          {% if txn.needs_review %}<span class="fa fa-edit fa-md main-list-item-icon"></span>{% endif %}
+          {% if not txn.posted %}<span class="fa fa-hourglass-half fa-md main-list-item-icon"></span>{% endif %}
+        </td>
+        <td><a href="{{url_for('.review_transaction', txn_id=txn.id)}}">{{txn.date}}</a></td>
+        <td>{{txn.name}}</td>
+        <td>{{txn.review.category if txn.review else "" }}</td>
+        <td class="text-right">{{'$%.2f' | format(txn.amount)}}</td>
+        <td class="text-right">{{'$%.2f' | format(txn.review.reimbursement_amount if txn.review else 0)}}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>

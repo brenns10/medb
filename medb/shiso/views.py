@@ -20,11 +20,13 @@ from medb.shiso.forms import AccountReportForm
 from medb.shiso.forms import LinkAccountForm
 from medb.shiso.forms import LinkItemForm
 from medb.shiso.forms import SyncAccountForm
+from medb.shiso.forms import TransactionListForm
 from medb.shiso.forms import TransactionReviewForm
 from medb.shiso.logic import compute_transaction_report
 from medb.shiso.logic import create_item
 from medb.shiso.logic import get_all_user_transactions
 from medb.shiso.logic import get_item_summary
+from medb.shiso.logic import get_linked_accounts
 from medb.shiso.logic import get_next_unreviewed_transaction
 from medb.shiso.logic import get_plaid_items
 from medb.shiso.logic import get_transactions
@@ -36,6 +38,7 @@ from medb.shiso.logic import review_transaction as do_review_transaction
 from medb.shiso.logic import sync_account
 from medb.shiso.models import Transaction
 from medb.shiso.models import UserPlaidAccount
+from medb.shiso.models import TRANSACTION_CATEGORIES
 from medb.user.models import User
 from medb.utils import flash_errors
 
@@ -110,7 +113,7 @@ def account_transactions(account_id):
     txr = get_transactions(account)
     next_unreviewed = get_next_unreviewed_transaction(account)
     return render_template(
-        "shiso/transactions.html",
+        "shiso/account_transactions.html",
         txns=txr,
         account=account,
         form=SyncAccountForm(),
@@ -236,6 +239,46 @@ def account_report(account_id):
         report=report,
         start_date=form.start_date.data,
         end_date=form.end_date.data,
+        txn_args={
+            "start_date": form.start_date.data,
+            "end_date": form.end_date.data,
+            "accounts": [account_id],
+        }
+    )
+
+
+@blueprint.route("/transactions/", methods=["GET"])
+@login_required
+def all_account_transactions():
+    today = date.today()
+    start = today.replace(day=1)
+    data = {
+        "start_date": start,
+        "end_date": today,
+    }
+    accounts = get_linked_accounts(current_user.id)
+    form = TransactionListForm()
+    form.accounts.choices = [(str(a.id), a.name) for a in accounts]
+    form.process(request.args, data=data)
+    if not form.validate():
+        flash_errors(form)
+        return render_template(
+            "shiso/all_transactions.html",
+            form=form,
+            txns=[],
+        )
+    accounts = list(map(int, form.accounts.data))
+    transactions = get_all_user_transactions(
+        current_user,
+        form.start_date.data,
+        form.end_date.data,
+        categories=form.category.data,
+        accounts=accounts,
+    )
+    return render_template(
+        "shiso/all_transactions.html",
+        form=form,
+        txns=transactions,
     )
 
 
@@ -272,4 +315,8 @@ def all_account_report():
         report=report,
         start_date=form.start_date.data,
         end_date=form.end_date.data,
+        txn_args={
+            "start_date": form.start_date.data,
+            "end_date": form.end_date.data,
+        }
     )

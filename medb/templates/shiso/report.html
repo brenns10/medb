@@ -31,7 +31,7 @@
     <tbody>
       {% for cat in report.categories %}
         <tr>
-          <td>{{cat}}</td>
+          <td><a href="{{url_for('.all_account_transactions', category=cat, **txn_args)}}">{{cat}}</a></td>
           <td class="text-right">{{'$%.2f' | format(report.share_categorized[cat])}}</td>
           <td class="text-right">{{'$%.2f' | format(report.reimbursed_categorized[cat])}}</td>
           <td class="text-right">{{'$%.2f' | format(report.all_categorized[cat])}}</td>

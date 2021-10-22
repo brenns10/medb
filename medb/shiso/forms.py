@@ -119,6 +119,23 @@ class AccountReportForm(Form):
             raise ValidationError("Start date must come before end date")
 
 
+# NOTE: not FlaskForm since submitted via GET, no need for CSRF
+class TransactionListForm(Form):
+
+    start_date = DateField("Report Start")
+    end_date = DateField("Report End")
+    accounts = SelectMultipleField("Accounts", validators=[Optional()])
+    category = SelectMultipleField(
+        "Categories",
+        choices=list(zip(TRANSACTION_CATEGORIES, TRANSACTION_CATEGORIES)),
+        validators=[Optional()],
+    )
+
+    def validate_end_date(self, field):
+        if self.end_date.data < self.start_date.data:
+            raise ValidationError("Start date must come before end date")
+
+
 class AccountRenameForm(FlaskForm):
 
     name = StringField(validators=[DataRequired()])

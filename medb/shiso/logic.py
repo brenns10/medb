@@ -254,6 +254,14 @@ def link_account(item_id: str, account: t.Dict):
     db.session.commit()
 
 
+def get_linked_accounts(user_id: int):
+    return UserPlaidAccount.query.join(
+        UserPlaidItem
+    ).filter(
+        UserPlaidItem.user_id == user_id
+    ).all()
+
+
 def get_upa_by_id(upa_id: int):
     return UserPlaidAccount.query.options(
         joinedload('item')
@@ -439,6 +447,8 @@ def get_all_user_transactions(
     user: User,
     start_date: t.Optional[datetime.date] = None,
     end_date: t.Optional[datetime.date] = None,
+    categories: t.Optional[t.Container[str]] = None,
+    accounts: t.Optional[t.Container[int]] = None,
 ) -> t.List[Transaction]:
     query = Transaction.query.options(
         db.joinedload(Transaction.review),
@@ -446,6 +456,8 @@ def get_all_user_transactions(
         Transaction.account,
     ).join(
         UserPlaidAccount.item,
+    ).join(
+        Transaction.review,
     ).filter(
         UserPlaidItem.user_id == user.id,
     )
@@ -456,6 +468,14 @@ def get_all_user_transactions(
     if end_date:
         query = query.filter(
             Transaction.date <= end_date
+        )
+    if categories:
+        query = query.filter(
+            TransactionReview.category.in_(categories)
+        )
+    if accounts:
+        query = query.filter(
+            UserPlaidAccount.id.in_(accounts),
         )
     return query.order_by(
         Transaction.date.desc(),
