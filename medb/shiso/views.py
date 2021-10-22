@@ -193,11 +193,11 @@ def account_sync(account_id: int):
             if not form.start_date.data:
                 flash("You must provide start date for initial sync")
             else:
-                initial_sync(account, form.start_date.data)
-                flash("Initial sync completed!", "success")
+                s = initial_sync(account, form.start_date.data)
+                flash(f"Initial sync completed! {s.summarize()}", "success")
         else:
-            sync_account(account)
-            flash("Sync completed!", "success")
+            s = sync_account(account)
+            flash(f"Sync completed! {s.summarize()}", "success")
     else:
         flash_errors(form)
     return redirect(url_for(".account_transactions", account_id=account_id))

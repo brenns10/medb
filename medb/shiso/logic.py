@@ -301,7 +301,36 @@ def get_plaid_transactions(
     )
 
 
-def initial_sync(acct: UserPlaidAccount, start_date: datetime.date):
+@dataclass
+class SyncReport:
+
+    new: int = 0
+    updated: int = 0
+    unchanged: int = 0
+    missing: int = 0
+    missing_list: t.List[Transaction] = field(default_factory=list)
+
+    updated_date: int = 0
+    updated_amount: int = 0
+    updated_posted: int = 0
+    updated_plaid_merchant_name: int = 0
+
+    def summarize(self) -> str:
+        s = (
+            f"Added {self.new} new transactions and updated {self.updated}."
+            f" There were {self.unchanged} unchanged transactions."
+        )
+        if self.missing:
+            s += (
+                f" WARNING: {self.missing} old transactions didn't appear "
+                f" on your account. Cross reference Shiso and your statement."
+            )
+        return s
+
+
+def initial_sync(
+    acct: UserPlaidAccount, start_date: datetime.date
+) -> SyncReport:
     num_txns = Transaction.query.filter(
         Transaction.account_id == acct.id
     ).count()
@@ -314,15 +343,19 @@ def initial_sync(acct: UserPlaidAccount, start_date: datetime.date):
         days_ago=days_ago,
         account_id=acct.account_id,
     )
+    report = SyncReport()
     for pt in plaid_txns.transactions:
         db.session.add(pt.to_plaid_transaction(acct.id))
+        report.new += 1
     acct.sync_start = start_date
     acct.sync_end = today
     db.session.add(acct)
     db.session.commit()
+    return report
 
 
-def sync_account(acct: UserPlaidAccount):
+def sync_account(acct: UserPlaidAccount) -> SyncReport:
+    report = SyncReport()
     today = datetime.date.today()
     # 7 day "grace period" for any updated transactions
     start = acct.sync_end - datetime.timedelta(days=7)
@@ -339,36 +372,46 @@ def sync_account(acct: UserPlaidAccount):
         account_id=acct.account_id,
     )
 
+    report = SyncReport()
+    fields = ["date", "amount", "posted", "plaid_merchant_name"]
     for pt in plaid_txns.transactions:
         txn_id = pt.transaction_id
         if txn_id in local_txns_by_plaid_id:
             plaid_txn = pt.to_plaid_transaction(acct.id)
             stored_txn = local_txns_by_plaid_id[txn_id]
-            if (
-                plaid_txn.date != stored_txn.date
-                or plaid_txn.amount != stored_txn.amount
-                or plaid_txn.posted != stored_txn.posted
-                or plaid_txn.plaid_merchant_name
-                != stored_txn.plaid_merchant_name
-            ):
-                print(f"{txn_id}: Update existing transaction!")
-                stored_txn.date = plaid_txn.date
-                stored_txn.amount = plaid_txn.amount
-                stored_txn.posted = plaid_txn.posted
-                stored_txn.plaid_merchant_name = plaid_txn.plaid_merchant_name
+            changed_fields = []
+            for fn in fields:
+                if getattr(plaid_txn, fn) != getattr(stored_txn, fn):
+                    changed_fields.append(fn)
+                    setattr(
+                        report,
+                        f"updated_{fn}",
+                        getattr(report, f"updated_{fn}") + 1,
+                    )
+
+            if changed_fields:
+                report.updated += 1
+                for fn in fields:
+                    setattr(stored_txn, fn, getattr(plaid_txn, fn))
+                # If the transaction just posts, we shouldn't make the user
+                # re-review. However, if any other field is changed, a re-review
+                # should happen.
+                if changed_fields != ["posted"]:
+                    stored_txn.mark_updated()
                 db.session.add(stored_txn)
             else:
-                print(f"{txn_id}: No change")
+                report.unchanged += 1
             del local_txns_by_plaid_id[txn_id]
         else:
-            print(f"{txn_id}: Add new local transaction from plaid!")
+            report.new += 1
             new_local_txn = pt.to_plaid_transaction(acct.id)
-            print(repr(new_local_txn))
             db.session.add(new_local_txn)
     db.session.commit()
 
     for txn_id in local_txns_by_plaid_id:
-        print(f"{txn_id}: Local transaction not found in plaid!")
+        report.missing += 1
+        report.missing_list.append(local_txns_by_plaid_id[txn_id])
+    return report
 
 
 def get_transactions(

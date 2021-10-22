@@ -163,13 +163,15 @@ class Transaction(Model):
         TZDateTime(),
         nullable=False,
         default=utcnow,
-        onupdate=utcnow,
     )
 
     account = db.relationship(
         "UserPlaidAccount",
         backref=db.backref("transactions", lazy="select"),
     )
+
+    def mark_updated(self):
+        self.updated = utcnow()
 
     @property
     def needs_review(self):
