@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+{% block title %}{{ account.name }} - Transaction Report - Shiso{% endblock %}
+{% block content %}
+<h1>{{ account.name }} - Transaction Report</h1>
+<form method="GET" action="{{url_for('.account_report', account_id=account.id)}}" >
+  <div class="form-group">
+    <div class="form-group">
+    {{ form.start_date.label }}
+    {{ form.start_date(class_="form-control") }}
+    </div>
+    <div class="form-group">
+    {{ form.end_date.label }}
+    {{ form.end_date(class_="form-control") }}
+    </div>
+    <div class="form-group">
+      <button class="btn btn-md btn-primary" type="submit">Compute Report</button>
+    </div>
+  </div>
+</form>
+{% if report %}
+  <h2>Report: {{start_date}} - {{end_date}}</h2>
+  <table class="table table-striped table-hover">
+    <thead>
+      <tr>
+        <th scope="col">Category</th>
+        <th class="text-right" scope="col">Your Share</th>
+        <th class="text-right" scope="col">Reimbursed</th>
+        <th class="text-right" scope="col">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for cat in report.categories %}
+        <tr>
+          <td>{{cat}}</td>
+          <td class="text-right">{{'$%.2f' | format(report.share_categorized[cat])}}</td>
+          <td class="text-right">{{'$%.2f' | format(report.reimbursed_categorized[cat])}}</td>
+          <td class="text-right">{{'$%.2f' | format(report.all_categorized[cat])}}</td>
+        </tr>
+      {% endfor %}
+      <tr>
+        <th scope="row">All Categories</th>
+        <td class="text-right">{{'$%.2f' | format(report.share_net)}}</td>
+        <td class="text-right">{{'$%.2f' | format(report.reimbursed_net)}}</td>
+        <td class="text-right">{{'$%.2f' | format(report.all_net)}}</td>
+      </tr>
+    </tbody>
+  </table>
+  {% if report.unreviewed_count %}
+    <p>
+      Note: this report ignores {{report.unreviewed_count}} transactions which
+      have not been reviewed, and thus have no data. They account for
+      {{'$%.2f' | format(report.unreviewed_net)}} of transactions. Please review
+      the transactions of this account to make sure the report is complete.
+    </p>
+  {% endif %}
+{% endif %}
+{% endblock %}
+{% block footer %}{% endblock %}

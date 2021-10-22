@@ -8,6 +8,7 @@ import typing as t
 from flask_wtf import FlaskForm
 from wtforms.fields.html5 import DateField
 from wtforms import DecimalField
+from wtforms import Form
 from wtforms import HiddenField
 from wtforms import RadioField
 from wtforms import SelectMultipleField
@@ -105,3 +106,14 @@ class TransactionReviewForm(FlaskForm):
             NumberRange(min=Decimal(0), max=txn.amount)
         )
         return form
+
+
+# NOTE: not FlaskForm since submitted via GET, no need for CSRF
+class AccountReportForm(Form):
+
+    start_date = DateField("Report Start")
+    end_date = DateField("Report End")
+
+    def validate_end_date(self, field):
+        if self.end_date.data < self.start_date.data:
+            raise ValidationError("Start date must come before end date")

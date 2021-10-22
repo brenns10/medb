@@ -356,12 +356,25 @@ def sync_account(acct: UserPlaidAccount):
         print(f'{txn_id}: Local transaction not found in plaid!')
 
 
-def get_transactions(acct: UserPlaidAccount) -> t.List[Transaction]:
-    return Transaction.query.options(
+def get_transactions(
+    acct: UserPlaidAccount,
+    start_date: t.Optional[datetime.date] = None,
+    end_date: t.Optional[datetime.date] = None,
+) -> t.List[Transaction]:
+    query = Transaction.query.options(
         db.joinedload(Transaction.review),
     ).filter(
         Transaction.account_id == acct.id,
-    ).order_by(
+    )
+    if start_date:
+        query = query.filter(
+            Transaction.date >= start_date
+        )
+    if end_date:
+        query = query.filter(
+            Transaction.date <= end_date
+        )
+    return query.order_by(
         Transaction.date.desc(),
         Transaction.id.desc(),
     ).all()
@@ -418,3 +431,65 @@ def review_transaction(txn: Transaction, review: TransactionReviewForm):
     rev.notes = review.notes.data
     db.session.add(rev)
     db.session.commit()
+
+
+@dataclass
+class AccountReport:
+
+    account: UserPlaidAccount
+    transactions: t.List[Transaction]
+
+    all_net: Decimal
+    share_net: Decimal
+    reimbursed_net: Decimal
+    unreviewed_net: Decimal
+    unreviewed_count: int
+
+    categories: t.List[str]
+    all_categorized: t.Dict[str, Decimal]
+    share_categorized: t.Dict[str, Decimal]
+    reimbursed_categorized: t.Dict[str, Decimal]
+
+
+def compute_account_report(account: UserPlaidAccount, txns: t.List[Transaction]) -> AccountReport:
+    categories = set()
+    txns = txns[:]
+    unreviewed_net = Decimal(0)
+    unreviewed_count = 0
+    for i in reversed(range(len(txns))):
+        if not txns[i].review:
+            unreviewed_net += txns[i].amount
+            unreviewed_count += 1
+            del txns[i]
+        else:
+            categories.add(txns[i].review.category)
+
+    categories = sorted(categories)
+    all_net = Decimal(0)
+    share_net = Decimal(0)
+    reimbursed_net = Decimal(0)
+    all_categorized = {c: Decimal(0) for c in categories}
+    share_categorized = {c: Decimal(0) for c in categories}
+    reimbursed_categorized = {c: Decimal(0) for c in categories}
+
+    for txn in txns:
+        all_net += txn.amount
+        share_net += txn.amount - txn.review.reimbursement_amount
+        reimbursed_net += txn.review.reimbursement_amount
+        all_categorized[txn.review.category] += txn.amount
+        share_categorized[txn.review.category] += txn.amount - txn.review.reimbursement_amount
+        reimbursed_categorized[txn.review.category] += txn.review.reimbursement_amount
+
+    return AccountReport(
+        account=account,
+        transactions=txns,
+        all_net=all_net,
+        share_net=share_net,
+        reimbursed_net=reimbursed_net,
+        unreviewed_net=unreviewed_net,
+        unreviewed_count=unreviewed_count,
+        categories=categories,
+        all_categorized=all_categorized,
+        share_categorized=share_categorized,
+        reimbursed_categorized=reimbursed_categorized,
+    )
