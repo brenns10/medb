@@ -15,29 +15,29 @@ from flask_login import login_required
 from medb.extensions import db
 from medb.settings import PLAID_ENV
 from medb.settings import PLAID_PUBLIC_KEY
-from medb.shiso.forms import AccountRenameForm
-from medb.shiso.forms import AccountReportForm
-from medb.shiso.forms import LinkAccountForm
-from medb.shiso.forms import LinkItemForm
-from medb.shiso.forms import SyncAccountForm
-from medb.shiso.forms import TransactionListForm
-from medb.shiso.forms import TransactionReviewForm
-from medb.shiso.logic import compute_transaction_report
-from medb.shiso.logic import create_item
-from medb.shiso.logic import get_all_user_transactions
-from medb.shiso.logic import get_item_summary
-from medb.shiso.logic import get_linked_accounts
-from medb.shiso.logic import get_next_unreviewed_transaction
-from medb.shiso.logic import get_plaid_items
-from medb.shiso.logic import get_transactions
-from medb.shiso.logic import get_transaction
-from medb.shiso.logic import get_upa_by_id
-from medb.shiso.logic import initial_sync
-from medb.shiso.logic import link_account
-from medb.shiso.logic import review_transaction as do_review_transaction
-from medb.shiso.logic import sync_account
-from medb.shiso.models import Transaction
-from medb.shiso.models import UserPlaidAccount
+from .forms import AccountRenameForm
+from .forms import AccountReportForm
+from .forms import LinkAccountForm
+from .forms import LinkItemForm
+from .forms import SyncAccountForm
+from .forms import TransactionListForm
+from .forms import TransactionReviewForm
+from .logic import compute_transaction_report
+from .logic import create_item
+from .logic import get_all_user_transactions
+from .logic import get_item_summary
+from .logic import get_linked_accounts
+from .logic import get_next_unreviewed_transaction
+from .logic import get_plaid_items
+from .logic import get_transactions
+from .logic import get_transaction
+from .logic import get_upa_by_id
+from .logic import initial_sync
+from .logic import link_account
+from .logic import review_transaction as do_review_transaction
+from .logic import sync_account
+from .models import Transaction
+from .models import UserPlaidAccount
 from medb.utils import flash_errors
 
 blueprint = Blueprint(

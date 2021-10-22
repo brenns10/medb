@@ -25,13 +25,13 @@ from medb.settings import PLAID_CLIENT_ID
 from medb.settings import PLAID_SECRET
 from medb.settings import PLAID_PUBLIC_KEY
 from medb.settings import PLAID_ENV
-from medb.shiso.models import PaymentChannel
-from medb.shiso.models import Transaction
-from medb.shiso.models import TransactionReview
-from medb.shiso.models import UserPlaidAccount
-from medb.shiso.models import UserPlaidItem
-from medb.shiso.forms import LinkItemForm
-from medb.shiso.forms import TransactionReviewForm
+from .models import PaymentChannel
+from .models import Transaction
+from .models import TransactionReview
+from .models import UserPlaidAccount
+from .models import UserPlaidItem
+from .forms import LinkItemForm
+from .forms import TransactionReviewForm
 from medb.user.models import User
 
 
