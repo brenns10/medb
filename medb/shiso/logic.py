@@ -310,6 +310,8 @@ class SyncReport:
     missing: int = 0
     missing_list: t.List[Transaction] = field(default_factory=list)
 
+    posted_updates: int = 0
+
     updated_date: int = 0
     updated_amount: int = 0
     updated_posted: int = 0
@@ -320,6 +322,8 @@ class SyncReport:
             f"Added {self.new} new transactions and updated {self.updated}."
             f" There were {self.unchanged} unchanged transactions."
         )
+        if self.posted_updates:
+            s += f" {self.posted_updates} transactions posted."
         if self.missing:
             s += (
                 f" WARNING: {self.missing} old transactions didn't appear "
@@ -375,10 +379,20 @@ def sync_account(acct: UserPlaidAccount) -> SyncReport:
     report = SyncReport()
     fields = ["date", "amount", "posted", "plaid_merchant_name"]
     for pt in plaid_txns.transactions:
+        stored_txn = None
         txn_id = pt.transaction_id
+        prev_txn_id = pt.pending_transaction_id
+        plaid_txn = pt.to_plaid_transaction(acct.id)
+        print(pt.name, pt.amount, txn_id, prev_txn_id)
         if txn_id in local_txns_by_plaid_id:
-            plaid_txn = pt.to_plaid_transaction(acct.id)
             stored_txn = local_txns_by_plaid_id[txn_id]
+            del local_txns_by_plaid_id[txn_id]
+        elif prev_txn_id and prev_txn_id in local_txns_by_plaid_id:
+            stored_txn = local_txns_by_plaid_id[prev_txn_id]
+            stored_txn.plaid_txn_id = txn_id
+            report.posted_updates += 1
+            del local_txns_by_plaid_id[prev_txn_id]
+        if stored_txn:
             changed_fields = []
             for fn in fields:
                 if getattr(plaid_txn, fn) != getattr(stored_txn, fn):
@@ -401,11 +415,9 @@ def sync_account(acct: UserPlaidAccount) -> SyncReport:
                 db.session.add(stored_txn)
             else:
                 report.unchanged += 1
-            del local_txns_by_plaid_id[txn_id]
         else:
             report.new += 1
-            new_local_txn = pt.to_plaid_transaction(acct.id)
-            db.session.add(new_local_txn)
+            db.session.add(plaid_txn)
     acct.sync_end = today
     db.session.add(acct)
     db.session.commit()
