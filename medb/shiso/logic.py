@@ -336,11 +336,13 @@ def sync_account(acct: UserPlaidAccount):
             stored_txn = local_txns_by_plaid_id[txn_id]
             if plaid_txn.date != stored_txn.date or \
                plaid_txn.amount != stored_txn.amount or \
+               plaid_txn.posted != stored_txn.posted or \
                plaid_txn.plaid_merchant_name != stored_txn.plaid_merchant_name:
                 print(f'{txn_id}: Update existing transaction!')
-                stored_txn.date != plaid_txn.date
-                stored_txn.amount != plaid_txn.amount
-                stored_txn.plaid_merchant_name != plaid_txn.plaid_merchant_name
+                stored_txn.date = plaid_txn.date
+                stored_txn.amount = plaid_txn.amount
+                stored_txn.posted = plaid_txn.posted
+                stored_txn.plaid_merchant_name = plaid_txn.plaid_merchant_name
                 db.session.add(stored_txn)
             else:
                 print(f'{txn_id}: No change')
