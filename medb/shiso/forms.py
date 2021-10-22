@@ -117,3 +117,8 @@ class AccountReportForm(Form):
     def validate_end_date(self, field):
         if self.end_date.data < self.start_date.data:
             raise ValidationError("Start date must come before end date")
+
+
+class AccountRenameForm(FlaskForm):
+
+    name = StringField(validators=[DataRequired()])

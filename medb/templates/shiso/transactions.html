@@ -27,6 +27,10 @@
        href="{{ url_for('.account_report', account_id=account.id) }}">
       Report
     </a>
+    <a class="btn btn-md btn-danger"
+       href="{{ url_for('.account_rename', account_id=account.id) }}">
+      Rename
+    </a>
   </div>
 </form>
 <table class="table table-striped table-hover">

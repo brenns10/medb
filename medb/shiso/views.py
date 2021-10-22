@@ -12,8 +12,10 @@ from flask import url_for
 from flask_login import current_user
 from flask_login import login_required
 
+from medb.extensions import db
 from medb.settings import PLAID_ENV
 from medb.settings import PLAID_PUBLIC_KEY
+from medb.shiso.forms import AccountRenameForm
 from medb.shiso.forms import AccountReportForm
 from medb.shiso.forms import LinkAccountForm
 from medb.shiso.forms import LinkItemForm
@@ -114,6 +116,18 @@ def account_transactions(account_id):
         form=SyncAccountForm(),
         next_unreviewed=next_unreviewed,
     )
+
+@blueprint.route("/account/<int:account_id>/rename/", methods=["GET", "POST"])
+@login_required
+def account_rename(account_id):
+    account = _view_fetch_account(account_id)
+    form = AccountRenameForm(request.form, data={"name": account.name})
+    if form.validate_on_submit():
+        account.name = form.name.data
+        db.session.add(account)
+        db.session.commit()
+        return redirect(url_for(".account_transactions", account_id=account_id))
+    return render_template("shiso/account_rename.html", form=form, account_id=account_id)
 
 @blueprint.route("/account/<int:account_id>/review/", methods=["GET"])
 @login_required
