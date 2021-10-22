@@ -14,6 +14,7 @@ from medb.extensions import (
     db,
     debug_toolbar,
     login_manager,
+    migrate,
 )
 
 
@@ -38,6 +39,7 @@ def register_extensions(app):
     """Register Flask extensions."""
     bcrypt.init_app(app)
     db.init_app(app)
+    migrate.init_app(app, db)
     csrf_protect.init_app(app)
     login_manager.init_app(app)
     debug_toolbar.init_app(app)

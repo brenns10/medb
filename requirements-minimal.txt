@@ -4,6 +4,7 @@ flask
 flask-bcrypt
 flask-debugtoolbar
 flask-login
+flask-migrate
 flask-sqlalchemy
 flask-wtf
 plaid-python<5
