@@ -174,7 +174,11 @@ class TransactionReview(Model):
 
     id = Column(Integer, primary_key=True)
     transaction_id = Column(
-        Integer, ForeignKey("user_plaid_transaction.id"), nullable=False)
+        Integer,
+        ForeignKey("user_plaid_transaction.id"),
+        nullable=False,
+        unique=True,
+    )
     transaction = db.relationship(
         "Transaction",
         backref=db.backref("review", uselist=False),
