@@ -33,9 +33,12 @@
   <thead>
     <tr>
       <th scope="col">NR?</th>
+      <th scope="col">P?</th>
       <th scope="col">Date</th>
       <th scope="col">Name</th>
+      <th scope="col">Category</th>
       <th class="text-right" scope="col">Amount</th>
+      <th class="text-right" scope="col">Reimburse</th>
     </tr>
   </thead>
   <tbody>
@@ -45,9 +48,12 @@
           <a href="{{url_for('.review_transaction', txn_id=txn.id)}}">
             {% if txn.needs_review %}Y{% else %}N{% endif %}
         </td>
+        <td>{{ "Y" if txn.posted else "N" }}</td>
         <td>{{txn.date}}</td>
         <td>{{txn.name}}</td>
+        <td>{{txn.review.category if txn.review else "" }}</td>
         <td class="text-right">{{'$%.2f' | format(txn.amount)}}</td>
+        <td class="text-right">{{'$%.2f' | format(txn.review.reimbursement_amount if txn.review else 0)}}</td>
       </tr>
     {% endfor %}
   </tbody>
