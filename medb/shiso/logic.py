@@ -307,8 +307,9 @@ class SyncReport:
     new: int = 0
     updated: int = 0
     unchanged: int = 0
-    missing: int = 0
+    missing_pending: int = 0
     missing_list: t.List[Transaction] = field(default_factory=list)
+    missing_posted: int = 0
 
     posted_updates: int = 0
 
@@ -324,10 +325,16 @@ class SyncReport:
         )
         if self.posted_updates:
             s += f" {self.posted_updates} transactions posted."
-        if self.missing:
+        if self.missing_pending:
             s += (
-                f" WARNING: {self.missing} old transactions didn't appear "
-                f" on your account. Cross reference Shiso and your statement."
+                f" {self.missing_pending} pending transactions didn't appear on your "
+                f"account, and so have been removed from Shiso along with any review."
+                f" This is uncommon, but not an error."
+            )
+        if self.missing_posted:
+            s += (
+                f" WARNING: {self.missing_posted} posted transactions no longer appear "
+                f"on your account. This is an error - check the DB and your statement."
             )
         return s
 
@@ -361,8 +368,8 @@ def initial_sync(
 def sync_account(acct: UserPlaidAccount) -> SyncReport:
     report = SyncReport()
     today = datetime.date.today()
-    # 7 day "grace period" for any updated transactions
-    start = acct.sync_end - datetime.timedelta(days=7)
+    # 14 day "grace period" for any updated transactions
+    start = acct.sync_end - datetime.timedelta(days=14)
     days_ago = (today - start).days
 
     local_txns = Transaction.query.filter(
@@ -420,11 +427,22 @@ def sync_account(acct: UserPlaidAccount) -> SyncReport:
             db.session.add(plaid_txn)
     acct.sync_end = today
     db.session.add(acct)
-    db.session.commit()
 
-    for txn_id in local_txns_by_plaid_id:
-        report.missing += 1
-        report.missing_list.append(local_txns_by_plaid_id[txn_id])
+    txns_to_delete = []
+    for plaid_id, txn in local_txns_by_plaid_id.items():
+        if txn.posted:
+            report.missing_posted += 1
+        else:
+            report.missing_pending += 1
+            # We could probably delete posted transactions too but it seems
+            # safest to just let a warning go through via the report.
+            txns_to_delete.append(txn.id)
+        report.missing_list.append(txn)
+    Transaction.query.filter(Transaction.id.in_(txns_to_delete)).delete()
+    TransactionReview.query.filter(
+        TransactionReview.transaction_id.in_(txns_to_delete)
+    ).delete()
+    db.session.commit()
     return report
 
 
