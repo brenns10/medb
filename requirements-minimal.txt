@@ -1,3 +1,4 @@
+celery[librabbitmq]
 click
 environs
 flask

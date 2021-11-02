@@ -10,6 +10,7 @@ import medb.shiso.views
 import medb.user.views
 from medb import public
 from medb.extensions import bcrypt
+from medb.extensions import celery
 from medb.extensions import csrf_protect
 from medb.extensions import db
 from medb.extensions import debug_toolbar
@@ -42,6 +43,7 @@ def register_extensions(app):
     csrf_protect.init_app(app)
     login_manager.init_app(app)
     debug_toolbar.init_app(app)
+    celery.init_app(app)
     return None
 
 
