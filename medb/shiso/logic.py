@@ -326,10 +326,13 @@ class SyncReport:
         if self.posted_updates:
             s += f" {self.posted_updates} transactions posted."
         if self.missing_pending:
+            txn_names = ", ".join(
+                txn.name for txn in self.missing_list if not txn.posted
+            )
             s += (
-                f" {self.missing_pending} pending transactions didn't appear on your "
-                f"account, and so have been removed from Shiso along with any review."
-                f" This is uncommon, but not an error."
+                f" {self.missing_pending} pending transactions ({txn_names}) didn't "
+                f"appear on your account, and so have been removed from Shiso along "
+                f"with any review. This is uncommon, but not an error."
             )
         if self.missing_posted:
             s += (
