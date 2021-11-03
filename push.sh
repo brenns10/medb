@@ -308,6 +308,11 @@ _getdefault() {
     echo -n $value
 }
 
+
+HOST=medb@gluttony.local
+ADMIN=stephen@gluttony.local
+SERVICES="uwsgi@medb celery celerybeat"
+
 # Step 1: Create git archive
 TAGDESC="$(_getdefault "Tag message (no spaces)" "$(_name)")"
 DATE="$(date +%Y-%m-%d)"
@@ -317,7 +322,6 @@ echo @@@ BUILD ARCHIVE @@@
 git archive --format tar.gz -o medb-deploy.tar.gz HEAD
 
 # Step 2: Send to host and create environment.
-HOST=medb@gluttony.local
 echo @@@ SEND ARCHIVE @@@
 echo Destination: $HOST
 scp medb-deploy.tar.gz $HOST: 2>/dev/null
@@ -333,9 +337,8 @@ ln -s ../.env.secret .env.secret
 " 2>/dev/null
 
 # Step 3: Down/up deploy, with optional pause for push plan
-ADMIN=stephen@gluttony.local
 echo @@@ STOP OLD VERSION @@@
-ssh $ADMIN "sudo systemctl stop uwsgi@medb" 2>/dev/null
+ssh $ADMIN "sudo systemctl stop $SERVICES" 2>/dev/null
 echo
 echo New environment is installed, and old version is stopped.
 echo
@@ -346,7 +349,7 @@ if ! _yesno "Continue? (no will prematurely end push)"; then
     exit 1
 fi
 ssh $HOST "rm current-ver && ln -s $TAG current-ver" 2>/dev/null
-ssh $ADMIN "sudo systemctl start uwsgi@medb" 2>/dev/null
+ssh $ADMIN "sudo systemctl start $SERVICES" 2>/dev/null
 
 # Step 4: Verify push and delete old version
 echo
@@ -354,9 +357,9 @@ echo Push is completed, please verify.
 echo
 if ! _yesno "Certify?"; then
     echo @@@ ROLLBACK PUSH @@@
-    ssh $ADMIN "sudo systemctl stop uwsgi@medb" 2>/dev/null
+    ssh $ADMIN "sudo systemctl stop $SERVICES" 2>/dev/null
     ssh $HOST "rm current-ver && ln -s $PREV current-ver && rm -r $TAG" 2>/dev/null
-    ssh $ADMIN "sudo systemctl start uwsgi@medb" 2>/dev/null
+    ssh $ADMIN "sudo systemctl start $SERVICES" 2>/dev/null
     echo @@@ ROLLBACK COMPLETE @@@
     exit 1
 else
