@@ -3,3 +3,4 @@ venv
 .env.secret*
 db/*
 medb.org
+medb-deploy.tar.gz
