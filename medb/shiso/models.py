@@ -207,6 +207,15 @@ class TransactionReview(Model):
     def mark_updated(self):
         self.updated = utcnow()
 
+    # Newly added constraints should be named, so that they can be migrated
+    # properly.
+    __table_args__ = (
+        db.UniqueConstraint(
+            "transaction_id",
+            name="transaction_review__transaction_id__unique",
+        ),
+    )
+
 
 class Balance(Model):
     __tablename__ = "account_balance"
