@@ -459,11 +459,11 @@ def get_transactions(
         Transaction.active,
     )
     if start_date:
-        query = query.filter(Transaction.date >= start_date)
+        query = query.filter(Transaction.original_date >= start_date)
     if end_date:
-        query = query.filter(Transaction.date <= end_date)
+        query = query.filter(Transaction.original_date <= end_date)
     return query.order_by(
-        Transaction.date.desc(),
+        Transaction.original_date.desc(),
         Transaction.id.desc(),
     ).all()
 
@@ -496,11 +496,11 @@ def get_next_unreviewed_transaction(
     if after is not None:
         query = query.filter(
             and_(
-                Transaction.date >= after.date,
+                Transaction.original_date >= after.date,
             )
         )
     return query.order_by(
-        Transaction.date,
+        Transaction.original_date,
         Transaction.id,
     ).first()
 
@@ -573,9 +573,9 @@ def get_all_user_transactions(
         )
     )
     if start_date:
-        query = query.filter(Transaction.date >= start_date)
+        query = query.filter(Transaction.original_date >= start_date)
     if end_date:
-        query = query.filter(Transaction.date <= end_date)
+        query = query.filter(Transaction.original_date <= end_date)
     if categories:
         query = query.filter(TransactionReview.category.in_(categories))
     if accounts:
@@ -583,7 +583,7 @@ def get_all_user_transactions(
             UserPlaidAccount.id.in_(accounts),
         )
     return query.order_by(
-        Transaction.date.desc(),
+        Transaction.original_date.desc(),
         Transaction.id.desc(),
     ).all()
 
