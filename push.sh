@@ -343,7 +343,8 @@ echo
 echo New environment is installed, and old version is stopped.
 echo
 echo Use this time to open another terminal and apply any migrations or manual
-echo steps.
+echo steps. Note that the old version is still symlinked at current-ver. You
+echo can find the new version in $TAG
 echo
 if ! _yesno "Continue? (no will prematurely end push)"; then
     exit 1
