@@ -231,6 +231,12 @@ class TransactionReview(Model):
         onupdate=utcnow,
     )
 
+    reviewed_amount = Column(SafeNumeric(16, 3), nullable=True)
+    reviewed_posted = Column(Boolean, nullable=True)
+    reviewed_name = Column(String, nullable=True)
+    reviewed_date = Column(Date, nullable=True)
+    reviewed_plaid_merchant_name = Column(String, nullable=True)
+
     def mark_updated(self):
         self.updated = utcnow()
 

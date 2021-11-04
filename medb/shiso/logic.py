@@ -318,6 +318,7 @@ class SyncReport:
 
     posted_updates: int = 0
 
+    updated_name: int = 0
     updated_date: int = 0
     updated_amount: int = 0
     updated_posted: int = 0
@@ -388,13 +389,12 @@ def sync_account(acct: UserPlaidAccount) -> SyncReport:
     )
 
     report = SyncReport()
-    fields = ["date", "amount", "posted", "plaid_merchant_name"]
+    fields = ["name", "date", "amount", "posted", "plaid_merchant_name"]
     for pt in plaid_txns.transactions:
         stored_txn = None
         txn_id = pt.transaction_id
         prev_txn_id = pt.pending_transaction_id
         plaid_txn = pt.to_plaid_transaction(acct.id)
-        print(pt.name, pt.amount, txn_id, prev_txn_id)
         if txn_id in local_txns_by_plaid_id:
             stored_txn = local_txns_by_plaid_id[txn_id]
             del local_txns_by_plaid_id[txn_id]
@@ -519,6 +519,11 @@ def review_deleted_transaction(txn: Transaction):
         rev.reimbursement_amount = Decimal(0)
         rev.category = ""
         rev.notes = ""
+    rev.reviewed_amount = txn.amount
+    rev.reviewed_date = txn.date
+    rev.reviewed_name = txn.name
+    rev.reviewed_plaid_merchant_name = txn.name
+    rev.reviewed_posted = txn.posted
     rev.mark_updated()
     db.session.add(rev)
     db.session.commit()
@@ -542,6 +547,11 @@ def review_transaction(txn: Transaction, review: TransactionReviewForm):
     rev.reimbursement_amount = amt
     rev.category = review.category.data
     rev.notes = review.notes.data
+    rev.reviewed_amount = txn.amount
+    rev.reviewed_date = txn.date
+    rev.reviewed_name = txn.name
+    rev.reviewed_plaid_merchant_name = txn.name
+    rev.reviewed_posted = txn.posted
     rev.mark_updated()
     db.session.add(rev)
     db.session.commit()

@@ -9,29 +9,61 @@
         <td>{{txn.account.name}}</td>
       </tr>
       <tr>
+        <th scope="row">Description</td>
+        <td>{{txn.name}}</td>
+      </tr>
+      {% if txn.review and txn.name != txn.review.reviewed_name and txn.review.reviewed_name is not none %}
+        <tr>
+          <th scope="row">Description (old)</td>
+          <td>{{txn.review.reviewed_name}}</td>
+        </tr>
+      {% endif %}
+      <tr>
         <th scope="row">Merchant</td>
         <td>{{txn.plaid_merchant_name}}</td>
       </tr>
-      <tr>
-        <th scope="row">Transaction Name</td>
-        <td>{{txn.name}}</td>
-      </tr>
+      {% if txn.review and txn.plaid_merchant_name != txn.review.reviewed_plaid_merchant_name
+            and txn.review.reviewed_plaid_merchant_name is not none %}
+        <tr>
+          <th scope="row">Merchant (old)</td>
+          <td>{{txn.review.reviewed_plaid_merchant_name}}</td>
+        </tr>
+      {% endif %}
       <tr>
         <th scope="row">Amount</td>
         <td>{{'$%.2f' | format(txn.amount)}}</td>
       </tr>
+      {% if txn.review and txn.amount != txn.review.reviewed_amount and txn.review.reviewed_amount is not none %}
+        <tr>
+          <th scope="row">Amount (old)</td>
+          <td>{{'$%.2f' | format(txn.review.reviewed_amount)}}</td>
+        </tr>
+      {% endif %}
       <tr>
-        <th scope="row">Original Date</td>
-        <td>{{txn.date}}</td>
+        <th scope="row">Date First Seen</td>
+        <td>{{txn.original_date}}</td>
       </tr>
       <tr>
         <th scope="row">Date</td>
         <td>{{txn.date}}</td>
       </tr>
+      {% if txn.review and txn.date != txn.review.reviewed_date and txn.review.reviewed_date is not none %}
+        <tr>
+          <th scope="row">Date (old)</td>
+          <td>{{txn.review.reviewed_date}}</td>
+        </tr>
+      {% endif %}
       <tr>
         <th scope="row">Posted</td>
         <td>{% if txn.posted %}Yes{% else %}No{% endif %}</td>
       </tr>
+      {% if txn.review and txn.posted != txn.review.reviewed_posted and txn.review.reviewed_posted is not none %}
+        <tr>
+          <th scope="row">Posted (old)</td>
+          <td>{% if txn.review.reviewed_posted %}Yes{% else %}No{% endif %}</td>
+      </tr>
+        </tr>
+      {% endif %}
     </tbody>
   </table>
   {% if not txn.active and not txn.posted %}
