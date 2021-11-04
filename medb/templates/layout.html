@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block body %}
-<body>
   {% include "flash.html" %}
   <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
     <div class="container">
@@ -25,7 +24,9 @@
         </form>-->
         <div class="my-2 my-md-0">
           <ul class="navbar-nav mr-auto">
-            {{ navlink(url_for('user.logout'), "Log out " + current_user.username) }}
+            {% if current_user.is_authenticated %}
+              {{ navlink(url_for('user.logout'), "Log out " + current_user.username) }}
+            {% endif %}
           </ul>
         </div>
       </div>
@@ -36,8 +37,4 @@
     {% block content %}
     {% endblock %}
   </div>
-  {% block footer %}
-  {% include "footer.html" %}
-  {% endblock footer %}
-</body>
 {% endblock %}

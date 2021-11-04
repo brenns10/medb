@@ -8,7 +8,9 @@
     {{ form.hidden_tag() }}
   </form>
   <button type="button" class="btn btn-primary" id="link-button">Link Account</button>
-  {% include "footer.html" %}
+  </div>
+{% endblock %}
+{% block body_js %}
   <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
   <script type="text/javascript">
     (function($) {
@@ -58,6 +60,4 @@
       });
     })(jQuery);
   </script>
-  </div>
 {% endblock %}
-{% block footer %}{% endblock %}
