@@ -496,7 +496,7 @@ def get_next_unreviewed_transaction(
     if after is not None:
         query = query.filter(
             and_(
-                Transaction.original_date >= after.date,
+                Transaction.original_date >= after.original_date,
             )
         )
     return query.order_by(
