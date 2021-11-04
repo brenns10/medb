@@ -31,6 +31,7 @@ from .logic import get_transactions
 from .logic import get_upa_by_id
 from .logic import initial_sync
 from .logic import link_account
+from .logic import review_deleted_transaction
 from .logic import review_transaction as do_review_transaction
 from .logic import sync_account
 from .models import Transaction
@@ -162,24 +163,28 @@ def review_transaction(txn_id: int):
             form=form,
             txn=txn,
         )
-    form = TransactionReviewForm.create(txn, request.form)
-    if form.validate_on_submit():
-        do_review_transaction(txn, form)
-        next_ = get_next_unreviewed_transaction(txn.account, after=txn)
-        if next_:
-            flash("Success, reviewing next transaction now", "info")
-            return redirect(url_for(".review_transaction", txn_id=next_.id))
-        else:
-            flash("Success, all transactions reviewed", "info")
-            return redirect(
-                url_for(".account_transactions", account_id=txn.account.id)
-            )
+    if not txn.active:
+        # Inactive transactions don't have the full form rendered or used. Don't
+        # try to validate it, just go ahead and use it.
+        review_deleted_transaction(txn)
     else:
-        flash_errors(form)
-        return render_template(
-            "shiso/transaction_review.html",
-            form=form,
-            txn=txn,
+        form = TransactionReviewForm.create(txn, request.form)
+        if not form.validate_on_submit():
+            flash_errors(form)
+            return render_template(
+                "shiso/transaction_review.html",
+                form=form,
+                txn=txn,
+            )
+        do_review_transaction(txn, form)
+    next_ = get_next_unreviewed_transaction(txn.account, after=txn)
+    if next_:
+        flash("Success, reviewing next transaction now", "info")
+        return redirect(url_for(".review_transaction", txn_id=next_.id))
+    else:
+        flash("Success, all transactions reviewed", "info")
+        return redirect(
+            url_for(".account_transactions", account_id=txn.account.id)
         )
 
 

@@ -30,6 +30,19 @@
       </tr>
     </tbody>
   </table>
+  {% if not txn.active and not txn.posted %}
+    <div class="alert alert-warning" role="alert">
+      This pending transaction was removed from your account!  Maybe you were
+      refunded, a hold was removed, or possibly a new transaction was added in
+      its place on your account.  This transaction is already invisible on the
+      transactions page. Please review it to acknowledge the removal.
+    </div>
+  {% elif not txn.active and txn.posted %}
+    <div class="alert alert-danger" role="alert">
+      This posted transaction was removed from your account. This should not
+      happen. It is a bug. Well, what are you waiting for? Fix it!
+    </div>
+  {% endif %}
   <form method="POST" action="{{url_for('.review_transaction', txn_id=txn.id)}}">
     {{form.csrf_token}}
     {% macro show_radio(radio) %}
@@ -43,16 +56,18 @@
       {% endfor %}
      </div>
     {%- endmacro %}
-    {{ show_radio(form.reimbursement_type) }}
-    <div class="form-group">
-      {{form.reimbursement_amount.label}}
-      {{ form.reimbursement_amount(class_="form-control") }}
-    </div>
-    {{ show_radio(form.category) }}
-    <div class="form-group">
-      {{ form.notes.label }}
-      {{ form.notes(class_="form-control") }}
-    </div>
+    {% if txn.active %}
+      {{ show_radio(form.reimbursement_type) }}
+      <div class="form-group">
+        {{form.reimbursement_amount.label}}
+        {{ form.reimbursement_amount(class_="form-control") }}
+      </div>
+      {{ show_radio(form.category) }}
+      <div class="form-group">
+        {{ form.notes.label }}
+        {{ form.notes(class_="form-control") }}
+      </div>
+    {% endif %}
     <div class="form-group">
       <button class="btn btn-lg btn-primary" type="submit">Review</button>
       <a class="btn btn-lg btn-danger"

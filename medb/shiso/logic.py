@@ -84,10 +84,15 @@ class PlaidTransaction:
         return Transaction(
             account_id=acct_id,
             plaid_txn_id=self.transaction_id,
+            active=True,
             amount=Decimal(str(self.amount)),
             posted=not self.pending,
             name=self.name,
             date=datetime.date.fromisoformat(self.date),
+            # We'll only copy this over for a newly-created transaction. For
+            # updated transactions, the date field will only be copied, and thus
+            # we'll preserve the original value
+            original_date=datetime.date.fromisoformat(self.date),
             plaid_payment_channel=self.payment_channel,
             plaid_payment_meta=json.dumps(self.payment_meta),
             plaid_merchant_name=self.merchant_name,
@@ -326,13 +331,9 @@ class SyncReport:
         if self.posted_updates:
             s += f" {self.posted_updates} transactions posted."
         if self.missing_pending:
-            txn_names = ", ".join(
-                txn.name for txn in self.missing_list if not txn.posted
-            )
             s += (
-                f" {self.missing_pending} pending transactions ({txn_names}) didn't "
-                f"appear on your account, and so have been removed from Shiso along "
-                f"with any review. This is uncommon, but not an error."
+                f" {self.missing_pending} pending transactions didn't "
+                f"appear on your account. You will need to review their removal."
             )
         if self.missing_posted:
             s += (
@@ -431,20 +432,17 @@ def sync_account(acct: UserPlaidAccount) -> SyncReport:
     acct.sync_end = today
     db.session.add(acct)
 
-    txns_to_delete = []
     for plaid_id, txn in local_txns_by_plaid_id.items():
+        if not txn.active:
+            continue
         if txn.posted:
             report.missing_posted += 1
         else:
             report.missing_pending += 1
-            # We could probably delete posted transactions too but it seems
-            # safest to just let a warning go through via the report.
-            txns_to_delete.append(txn.id)
+        txn.active = False
+        txn.mark_updated()
+        db.session.add(txn)
         report.missing_list.append(txn)
-    Transaction.query.filter(Transaction.id.in_(txns_to_delete)).delete()
-    TransactionReview.query.filter(
-        TransactionReview.transaction_id.in_(txns_to_delete)
-    ).delete()
     db.session.commit()
     return report
 
@@ -458,6 +456,7 @@ def get_transactions(
         db.joinedload(Transaction.review),
     ).filter(
         Transaction.account_id == acct.id,
+        Transaction.active,
     )
     if start_date:
         query = query.filter(Transaction.date >= start_date)
@@ -479,6 +478,8 @@ def get_next_unreviewed_transaction(
     acct: UserPlaidAccount,
     after: t.Optional[Transaction] = None,
 ) -> Transaction:
+    # Note we do not filter inactive transactions. We want to be able to review
+    # those.
     query = (
         Transaction.query.options(db.joinedload(Transaction.review))
         .outerjoin(TransactionReview)
@@ -502,6 +503,25 @@ def get_next_unreviewed_transaction(
         Transaction.date,
         Transaction.id,
     ).first()
+
+
+def review_deleted_transaction(txn: Transaction):
+    """
+    Review a transaction which is no longer active.
+    """
+    assert not txn.active
+    if txn.review:
+        rev = txn.review
+    else:
+        # insert dummy review values if it was never reviewed before
+        rev = TransactionReview()
+        rev.transaction_id = txn.id
+        rev.reimbursement_amount = Decimal(0)
+        rev.category = ""
+        rev.notes = ""
+    rev.mark_updated()
+    db.session.add(rev)
+    db.session.commit()
 
 
 def review_transaction(txn: Transaction, review: TransactionReviewForm):
@@ -549,6 +569,7 @@ def get_all_user_transactions(
         )
         .filter(
             UserPlaidItem.user_id == user.id,
+            Transaction.active,
         )
     )
     if start_date:

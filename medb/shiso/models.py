@@ -16,6 +16,7 @@ from sqlalchemy import Integer
 from sqlalchemy import Numeric
 from sqlalchemy import String
 from sqlalchemy.dialects.sqlite.base import SQLiteDialect
+from sqlalchemy.sql import expression
 
 from medb.database import Model
 from medb.extensions import db
@@ -141,11 +142,37 @@ class Transaction(Model):
         Integer, ForeignKey("user_plaid_account.id"), nullable=False
     )
 
+    active = Column(Boolean, nullable=False, server_default=expression.true())
+    """Does this transaction row still exist in Plaid?
+
+    If active=false, the transaction is hidden from the reports and transaction
+    views. However, inactive rows retain their review row. Setting active=false
+    should be accompanied by a mark_updated(), which will show the transaction
+    once more for review, so the user can acknowledge its deletion.
+    """
+
     plaid_txn_id = Column(String(100), nullable=False)
     amount = Column(SafeNumeric(16, 3), nullable=False)
     posted = Column(Boolean, nullable=False)
     name = Column(String, nullable=False)
     date = Column(Date, nullable=False)
+    """The date field which Plaid reports.
+
+    The date field may change over time - it starts as the transaction date, and
+    then becomes the "posted" date. This means transactions "move around" in the
+    table, which is not really good for the user, so we also store original_date.
+    We use date whenever we need to synchronize with Plaid. We use original_date
+    when fetching and displaying data for users.
+    """
+
+    original_date = Column(Date, nullable=False)
+    """The first date associated with this transaction.
+
+    Since the date column can change, this field holds the original value of the
+    date column. Since it's more likely to be the actual day that the user
+    swiped (or inserted (or tapped)) their card, we use this for user-facing
+    reporting.
+    """
 
     plaid_payment_channel = Column(
         Enum(
