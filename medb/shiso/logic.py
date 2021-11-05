@@ -522,7 +522,7 @@ def review_deleted_transaction(txn: Transaction):
     rev.reviewed_amount = txn.amount
     rev.reviewed_date = txn.date
     rev.reviewed_name = txn.name
-    rev.reviewed_plaid_merchant_name = txn.name
+    rev.reviewed_plaid_merchant_name = txn.plaid_merchant_name
     rev.reviewed_posted = txn.posted
     rev.mark_updated()
     db.session.add(rev)
@@ -550,7 +550,7 @@ def review_transaction(txn: Transaction, review: TransactionReviewForm):
     rev.reviewed_amount = txn.amount
     rev.reviewed_date = txn.date
     rev.reviewed_name = txn.name
-    rev.reviewed_plaid_merchant_name = txn.name
+    rev.reviewed_plaid_merchant_name = txn.plaid_merchant_name
     rev.reviewed_posted = txn.posted
     rev.mark_updated()
     db.session.add(rev)
