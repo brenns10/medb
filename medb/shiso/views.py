@@ -112,6 +112,7 @@ def home():
         "shiso/home.html",
         items=items,
         next_unreviewed=next_unreviewed,
+        form=SyncAccountForm(),
     )
 
 
@@ -154,7 +155,7 @@ def account_review(account_id: int):
     if txn:
         return redirect(url_for(".account_review_transaction", txn_id=txn.id))
     else:
-        flash("All transactions are reviewed!")
+        flash("All transactions are reviewed!", "success")
         return redirect(url_for(".account_transactions", account_id=account.id))
 
 
@@ -165,7 +166,7 @@ def global_review():
     if txn:
         return redirect(url_for(".global_review_transaction", txn_id=txn.id))
     else:
-        flash("All transactions are reviewed!")
+        flash("All transactions are reviewed!", "success")
         return redirect(url_for(".home"))
 
 
@@ -252,6 +253,22 @@ def account_sync(account_id: int):
     else:
         flash_errors(form)
     return redirect(url_for(".account_transactions", account_id=account_id))
+
+
+@blueprint.route("/account/sync/", methods=["POST"])
+@login_required
+def global_sync():
+    form = SyncAccountForm(request.form)
+    results = []
+    if form.validate_on_submit():
+        items = get_plaid_items(current_user)
+        for item in items:
+            for account in item.accounts:
+                if account.sync_start:
+                    results.append(sync_account(account))
+    else:
+        flash_errors(form)
+    return render_template("shiso/global_sync_result.html", results=results)
 
 
 @blueprint.route("/account/<int:account_id>/report/", methods=["GET"])

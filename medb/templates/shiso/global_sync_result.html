@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block title %}Sync All Account Result{% endblock %}
+{% block content %}
+  <h1>Sync All Account Result</h1>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Account</th>
+        <th>Result</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for result in results %}
+        <tr>
+          <td>{{result.account.name}}</td>
+          <td>{{result.summarize()}}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p><a class="btn btn-md btn-secondary" href="{{url_for('.global_review')}}">Transaction Review</a></p>
+{% endblock %}

@@ -309,6 +309,7 @@ def get_plaid_transactions(
 @dataclass
 class SyncReport:
 
+    account: UserPlaidAccount
     new: int = 0
     updated: int = 0
     unchanged: int = 0
@@ -359,7 +360,7 @@ def initial_sync(
         days_ago=days_ago,
         account_id=acct.account_id,
     )
-    report = SyncReport()
+    report = SyncReport(account=acct)
     for pt in plaid_txns.transactions:
         db.session.add(pt.to_plaid_transaction(acct.id))
         report.new += 1
@@ -371,7 +372,6 @@ def initial_sync(
 
 
 def sync_account(acct: UserPlaidAccount) -> SyncReport:
-    report = SyncReport()
     today = datetime.date.today()
     # 14 day "grace period" for any updated transactions
     start = acct.sync_end - datetime.timedelta(days=14)
@@ -388,7 +388,7 @@ def sync_account(acct: UserPlaidAccount) -> SyncReport:
         account_id=acct.account_id,
     )
 
-    report = SyncReport()
+    report = SyncReport(account=acct)
     fields = ["name", "date", "amount", "posted", "plaid_merchant_name"]
     for pt in plaid_txns.transactions:
         stored_txn = None

@@ -12,6 +12,12 @@
   </ul>
 {% endfor %}
 <p><a class="btn btn-md btn-primary" href="{{url_for('.all_account_report')}}">All Account Report</a></p>
+<form method="POST" action="{{url_for('.global_sync')}}" >
+  {{ form.csrf_token }}
+  <div class="form-group">
+    <button class="btn btn-md btn-primary" type="submit">Start Sync</button>
+  </div>
+</form>
 {% if next_unreviewed %}
 <p><a class="btn btn-md btn-secondary" href="{{url_for('.global_review')}}">Transaction Review</a></p>
 {% endif %}
