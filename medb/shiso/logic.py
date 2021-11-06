@@ -418,10 +418,8 @@ def sync_account(acct: UserPlaidAccount) -> SyncReport:
                 report.updated += 1
                 for fn in fields:
                     setattr(stored_txn, fn, getattr(plaid_txn, fn))
-                # If the transaction just posts, we shouldn't make the user
-                # re-review. However, if any other field is changed, a re-review
-                # should happen.
-                if changed_fields != ["posted"]:
+                # Only require re-review when the amount changes
+                if "amount" in changed_fields:
                     stored_txn.mark_updated()
                 db.session.add(stored_txn)
             else:
