@@ -475,24 +475,39 @@ def get_transaction(txn_id) -> t.Optional[Transaction]:
 
 
 def get_next_unreviewed_transaction(
-    acct: UserPlaidAccount,
+    acct: t.Optional[UserPlaidAccount] = None,
     after: t.Optional[Transaction] = None,
+    user: t.Optional[User] = None,
 ) -> Transaction:
-    # Note we do not filter inactive transactions. We want to be able to review
-    # those.
-    query = (
-        Transaction.query.options(db.joinedload(Transaction.review))
-        .outerjoin(TransactionReview)
-        .filter(
-            and_(
-                Transaction.account_id == acct.id,
-                or_(
-                    TransactionReview.id.is_(None),
-                    TransactionReview.updated < Transaction.updated,
-                ),
-            )
+    """
+    Return the next unreviewed transaction.
+
+    You must either provide acct or user. So you'll either get the next
+    transaction to review in this account, or across all accounts for a user.
+    The "after" argument specifies where to start.
+
+    Unlike other functions, this one could return a inactive transaction
+    (because users need to review those).
+    """
+    assert user or acct
+    assert not (user and acct)
+    query = Transaction.query.options(db.joinedload(Transaction.review))
+    if acct is None:
+        query = query.join(UserPlaidAccount).join(UserPlaidItem)
+    query = query.outerjoin(TransactionReview)
+    query = query.filter(
+        or_(
+            TransactionReview.id.is_(None),
+            TransactionReview.updated < Transaction.updated,
         )
     )
+
+    if not acct and user:
+        query = query.filter(UserPlaidItem.user_id == user.id)
+    elif acct and not user:
+        query = query.filter(Transaction.account_id == acct.id)
+    else:
+        assert False
     if after is not None:
         query = query.filter(
             and_(

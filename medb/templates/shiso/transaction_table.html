@@ -17,7 +17,7 @@
           {% if txn.needs_review %}<span class="fa fa-edit fa-md main-list-item-icon"></span>{% endif %}
           {% if not txn.posted %}<span class="fa fa-hourglass-half fa-md main-list-item-icon"></span>{% endif %}
         </td>
-        <td><a href="{{url_for('.review_transaction', txn_id=txn.id)}}">{{txn.original_date}}</a></td>
+        <td><a href="{{url_for(review_dest, txn_id=txn.id)}}">{{txn.original_date}}</a></td>
         <td>{{txn.name}}</td>
         <td>{{txn.review.category if txn.review else "" }}</td>
         <td class="text-right">{{'$%.2f' | format(txn.amount)}}</td>

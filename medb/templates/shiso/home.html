@@ -12,5 +12,8 @@
   </ul>
 {% endfor %}
 <p><a class="btn btn-md btn-primary" href="{{url_for('.all_account_report')}}">All Account Report</a></p>
+{% if next_unreviewed %}
+<p><a class="btn btn-md btn-secondary" href="{{url_for('.global_review')}}">Transaction Review</a></p>
+{% endif %}
 <p><a class="btn btn-md btn-secondary" href="{{url_for('.link')}}">Link new financial institution</a></p>
 {% endblock %}

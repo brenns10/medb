@@ -79,7 +79,7 @@
       happen. It is a bug. Well, what are you waiting for? Fix it!
     </div>
   {% endif %}
-  <form method="POST" action="{{url_for('.review_transaction', txn_id=txn.id)}}">
+  <form method="POST" action="{{url_for(dest, txn_id=txn.id)}}">
     {{form.csrf_token}}
     {% macro show_radio(radio) %}
       {{ radio.label }}

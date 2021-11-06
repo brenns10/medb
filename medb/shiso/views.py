@@ -107,7 +107,12 @@ def link_accounts(item_id: int):
 @login_required
 def home():
     items = get_plaid_items(current_user)
-    return render_template("shiso/home.html", items=items)
+    next_unreviewed = get_next_unreviewed_transaction(user=current_user)
+    return render_template(
+        "shiso/home.html",
+        items=items,
+        next_unreviewed=next_unreviewed,
+    )
 
 
 @blueprint.route("/account/<int:account_id>/", methods=["GET"])
@@ -122,6 +127,7 @@ def account_transactions(account_id: int):
         account=account,
         form=SyncAccountForm(),
         next_unreviewed=next_unreviewed,
+        review_dest=".account_review_transaction",
     )
 
 
@@ -146,22 +152,37 @@ def account_review(account_id: int):
     account = _view_fetch_account(account_id)
     txn = get_next_unreviewed_transaction(account)
     if txn:
-        return redirect(url_for(".review_transaction", txn_id=txn.id))
+        return redirect(url_for(".account_review_transaction", txn_id=txn.id))
     else:
         flash("All transactions are reviewed!")
         return redirect(url_for(".account_transactions", account_id=account.id))
 
 
-@blueprint.route("/transaction/<int:txn_id>/review/", methods=["GET", "POST"])
+@blueprint.route("/review/", methods=["GET"])
 @login_required
-def review_transaction(txn_id: int):
+def global_review():
+    txn = get_next_unreviewed_transaction(user=current_user)
+    if txn:
+        return redirect(url_for(".global_review_transaction", txn_id=txn.id))
+    else:
+        flash("All transactions are reviewed!")
+        return redirect(url_for(".home"))
+
+
+def review_transaction(txn_id: int, acct: bool):
     txn = _view_fetch_transaction(txn_id)
     if request.method == "GET":
         form = TransactionReviewForm.create(txn, None)
+        dest = (
+            ".account_review_transaction"
+            if acct
+            else ".global_review_transaction"
+        )
         return render_template(
             "shiso/transaction_review.html",
             form=form,
             txn=txn,
+            dest=dest,
         )
     if not txn.active:
         # Inactive transactions don't have the full form rendered or used. Don't
@@ -177,15 +198,40 @@ def review_transaction(txn_id: int):
                 txn=txn,
             )
         do_review_transaction(txn, form)
-    next_ = get_next_unreviewed_transaction(txn.account, after=txn)
+    if acct:
+        next_ = get_next_unreviewed_transaction(acct=txn.account, after=txn)
+    else:
+        next_ = get_next_unreviewed_transaction(after=txn, user=current_user)
     if next_:
         flash("Success, reviewing next transaction now", "info")
-        return redirect(url_for(".review_transaction", txn_id=next_.id))
+        dest = (
+            ".account_review_transaction"
+            if acct
+            else ".global_review_transaction"
+        )
+        return redirect(url_for(dest, txn_id=next_.id))
     else:
         flash("Success, all transactions reviewed", "info")
+        dest = ".account_transactions" if acct else ".home"
         return redirect(
             url_for(".account_transactions", account_id=txn.account.id)
         )
+
+
+@blueprint.route(
+    "/transaction/<int:txn_id>/account-review/", methods=["GET", "POST"]
+)
+@login_required
+def account_review_transaction(txn_id: int):
+    return review_transaction(txn_id, True)
+
+
+@blueprint.route(
+    "/transaction/<int:txn_id>/global-review/", methods=["GET", "POST"]
+)
+@login_required
+def global_review_transaction(txn_id: int):
+    return review_transaction(txn_id, False)
 
 
 @blueprint.route("/account/<int:account_id>/sync/", methods=["POST"])
@@ -276,6 +322,7 @@ def all_account_transactions():
         "shiso/all_transactions.html",
         form=form,
         txns=transactions,
+        review_dest=".global_review_transaction",
     )
 
 
