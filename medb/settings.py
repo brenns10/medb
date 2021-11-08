@@ -26,3 +26,5 @@ PLAID_PUBLIC_KEY = env.str("PLAID_PUBLIC_KEY")
 PLAID_PRODUCTS = env.str("PLAID_PRODUCTS")
 PLAID_COUNTRY_CODES = env.str("PLAID_COUNTRY_CODES")
 PLAID_ENV = env.str("PLAID_ENV")
+
+DEPLOY = env.str("MEDB_DEPLOY", default="(development, no deploy info)")
