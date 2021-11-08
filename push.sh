@@ -334,6 +334,7 @@ python -m venv venv
 venv/bin/pip install wheel
 venv/bin/pip install -r requirements.txt
 ln -s ../.env.secret .env.secret
+sed -i 's/^MEDB_DEPLOY=.*$/MEDB_DEPLOY=$TAG/' .env
 " 2>/dev/null
 
 # Step 3: Down/up deploy, with optional pause for push plan
