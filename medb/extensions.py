@@ -28,6 +28,7 @@ class CeleryExtension(Celery):
             broker=app.config["CELERY_BROKER_URL"],
             include=[
                 "medb.shiso.tasks",
+                "medb.speedtest.tasks",
             ],
         )
         self.conf.update(app.config)

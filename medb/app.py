@@ -3,10 +3,15 @@
 import logging
 import sys
 
+from celery.schedules import crontab
 from flask import Flask
 from flask import render_template
 
+import medb.shiso.models  # noqa
 import medb.shiso.views
+import medb.speedtest.models  # noqa
+import medb.speedtest.views
+import medb.user.models  # noqa
 import medb.user.views
 from medb import public
 from medb.extensions import bcrypt
@@ -44,6 +49,7 @@ def register_extensions(app):
     login_manager.init_app(app)
     debug_toolbar.init_app(app)
     celery.init_app(app)
+    register_periodic_tasks()
     return None
 
 
@@ -52,6 +58,7 @@ def register_blueprints(app):
     app.register_blueprint(public.blueprint)
     app.register_blueprint(medb.user.views.blueprint)
     app.register_blueprint(medb.shiso.views.blueprint)
+    app.register_blueprint(medb.speedtest.views.blueprint)
     return None
 
 
@@ -89,3 +96,13 @@ def configure_logger(app):
     handler = logging.StreamHandler(sys.stdout)
     if not app.logger.handlers:
         app.logger.addHandler(handler)
+
+
+def register_periodic_tasks():
+    celery.conf.beat_schedule = {
+        "regular_speedtest": {
+            "task": "medb.speedtest.tasks.perform_speedtest",
+            "schedule": crontab(minute=0),
+            "args": (),
+        },
+    }

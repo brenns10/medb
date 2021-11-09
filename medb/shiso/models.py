@@ -2,11 +2,8 @@
 """
 Database models for "shiso"
 """
-import datetime
 import enum
-from decimal import Decimal as D
 
-import sqlalchemy.types as types
 from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import Date
@@ -15,11 +12,13 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import Numeric
 from sqlalchemy import String
-from sqlalchemy.dialects.sqlite.base import SQLiteDialect
 from sqlalchemy.sql import expression
 
 from medb.database import Model
 from medb.extensions import db
+from medb.model_util import SafeNumeric
+from medb.model_util import TZDateTime
+from medb.model_util import utcnow
 
 
 TRANSACTION_CATEGORIES = [
@@ -37,27 +36,6 @@ TRANSACTION_CATEGORIES = [
     "Transfer",
     "Pet",
 ]
-
-
-def utcnow():
-    return datetime.datetime.now(datetime.timezone.utc)
-
-
-class TZDateTime(types.TypeDecorator):
-    impl = types.DateTime
-    cache_ok = True
-
-    def process_bind_param(self, value, dialect):
-        if value is not None:
-            if not value.tzinfo:
-                raise TypeError("tzinfo is required")
-            value = value.astimezone(datetime.timezone.utc).replace(tzinfo=None)
-        return value
-
-    def process_result_value(self, value, dialect):
-        if value is not None:
-            value = value.replace(tzinfo=datetime.timezone.utc)
-        return value
 
 
 class UserPlaidItem(Model):
@@ -93,39 +71,6 @@ class UserPlaidAccount(Model):
         default=utcnow,
         onupdate=utcnow,
     )
-
-
-class SafeNumeric(types.TypeDecorator):
-
-    impl = Numeric
-
-    def __init__(self, precision, scale, *args, **kwargs):
-        super().__init__(self, precision, scale, *args, **kwargs)
-        self._scale = scale
-
-    def load_dialect_impl(self, dialect):
-        if isinstance(dialect, SQLiteDialect):
-            return dialect.type_descriptor(types.BigInteger())
-        else:
-            return self.impl
-
-    def process_bind_param(self, value, dialect):
-        if value is None:
-            return None
-        if not isinstance(value, D):
-            raise TypeError("Numeric literals should be decimal")
-        if isinstance(dialect, SQLiteDialect):
-            return int(value.shift(self._scale))
-        else:
-            return value
-
-    def process_result_value(self, value, dialect):
-        if value is None:
-            return None
-        if isinstance(dialect, SQLiteDialect):
-            return D(value) / (10 ** self._scale)
-        else:
-            return D(value)
 
 
 class PaymentChannel(enum.Enum):
