@@ -4,3 +4,5 @@ venv
 db/*
 medb.org
 medb-deploy.tar.gz
+celerybeat-schedule
+dump.rdb
