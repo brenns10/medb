@@ -1,0 +1,3 @@
+celery[redis]
+ipython
+requirements-tools
