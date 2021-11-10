@@ -102,7 +102,7 @@ def register_periodic_tasks():
     celery.conf.beat_schedule = {
         "regular_speedtest": {
             "task": "medb.speedtest.tasks.perform_speedtest",
-            "schedule": crontab(minute=0),
+            "schedule": crontab(minute=3),
             "args": (),
         },
     }
