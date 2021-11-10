@@ -25,3 +25,12 @@ class SpeedTestResult(Model):
     )
     server_name = db.Column(String, nullable=False)
     server_id = db.Column(String, nullable=False)
+
+
+class IpCheckResult(Model):
+    __tablename__ = "ipcheck_result"
+
+    id = db.Column(Integer, primary_key=True)
+    time = db.Column(TZDateTime(), nullable=False, default=utcnow)
+    ipv4 = db.Column(String(15), nullable=False)
+    ipv6 = db.Column(String(39), nullable=True)
