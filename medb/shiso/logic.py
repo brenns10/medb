@@ -331,19 +331,22 @@ class SyncReport:
         s = (
             f"Added {self.new} new transactions, updated {self.updated}, and"
             f" saw {self.unchanged} unchanged transactions."
-            f" Of the updated transactions, {self.rereview} need re-review."
         )
+        if self.rereview:
+            s += (
+                f" Of the updated transactions, {self.rereview} need re-review."
+            )
         if self.posted_updates:
             s += f" {self.posted_updates} transactions posted."
-        if self.missing_pending:
-            s += (
-                f" {self.missing_pending} pending transactions didn't "
-                f"appear on your account. You will need to review their removal."
-            )
         if self.updated_active:
             s += (
                 f" {self.updated_active} transactions were 'resurrected' from an "
                 f"inactive state to an active one, maybe due to posting."
+            )
+        if self.missing_pending:
+            s += (
+                f" {self.missing_pending} pending transactions didn't "
+                f"appear on your account. You will need to review their removal."
             )
         if self.missing_posted:
             s += (
