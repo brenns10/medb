@@ -14,11 +14,16 @@ from medb.extensions import db
 @celery.task
 def perform_speedtest():
     logging.info("Started speedtest")
-    res = subprocess.run(
-        ["speedtest-cli", "--json"],
-        check=True,
-        capture_output=True,
-    )
+    try:
+        res = subprocess.run(
+            ["speedtest-cli", "--json"],
+            check=True,
+            capture_output=True,
+        )
+    except subprocess.CalledProcessError as e:
+        logging.error('stdout="%s"', e.stdout.decode("utf-8"))
+        logging.error('stderr="%s"', e.stderr.decode("utf-8"))
+        raise
     test_result = json.loads(res.stdout.decode("utf-8"))
     server_name = "{} ({})".format(
         test_result["server"]["name"],
