@@ -312,6 +312,7 @@ class SyncReport:
     account: UserPlaidAccount
     new: int = 0
     updated: int = 0
+    rereview: int = 0
     unchanged: int = 0
     missing_pending: int = 0
     missing_list: t.List[Transaction] = field(default_factory=list)
@@ -319,6 +320,7 @@ class SyncReport:
 
     posted_updates: int = 0
 
+    updated_active: int = 0
     updated_name: int = 0
     updated_date: int = 0
     updated_amount: int = 0
@@ -327,8 +329,9 @@ class SyncReport:
 
     def summarize(self) -> str:
         s = (
-            f"Added {self.new} new transactions and updated {self.updated}."
-            f" There were {self.unchanged} unchanged transactions."
+            f"Added {self.new} new transactions, updated {self.updated}, and"
+            f" saw {self.unchanged} unchanged transactions."
+            f" Of the updated transactions, {self.rereview} need re-review."
         )
         if self.posted_updates:
             s += f" {self.posted_updates} transactions posted."
@@ -336,6 +339,11 @@ class SyncReport:
             s += (
                 f" {self.missing_pending} pending transactions didn't "
                 f"appear on your account. You will need to review their removal."
+            )
+        if self.updated_active:
+            s += (
+                f" {self.updated_active} transactions were 'resurrected' from an "
+                f"inactive state to an active one, maybe due to posting."
             )
         if self.missing_posted:
             s += (
@@ -389,7 +397,14 @@ def sync_account(acct: UserPlaidAccount) -> SyncReport:
     )
 
     report = SyncReport(account=acct)
-    fields = ["name", "date", "amount", "posted", "plaid_merchant_name"]
+    fields = [
+        "name",
+        "date",
+        "amount",
+        "posted",
+        "plaid_merchant_name",
+        "active",
+    ]
     for pt in plaid_txns.transactions:
         stored_txn = None
         txn_id = pt.transaction_id
@@ -413,14 +428,16 @@ def sync_account(acct: UserPlaidAccount) -> SyncReport:
                         f"updated_{fn}",
                         getattr(report, f"updated_{fn}") + 1,
                     )
-
             if changed_fields:
                 report.updated += 1
                 for fn in fields:
                     setattr(stored_txn, fn, getattr(plaid_txn, fn))
-                # Only require re-review when the amount changes
-                if "amount" in changed_fields:
+                # Situations to require re-review:
+                # 1: amount changed
+                # 2: somehow a "deleted" transaction becomes active again
+                if "amount" in changed_fields or "active" in changed_fields:
                     stored_txn.mark_updated()
+                    report.rereview += 1
                 db.session.add(stored_txn)
             else:
                 report.unchanged += 1
