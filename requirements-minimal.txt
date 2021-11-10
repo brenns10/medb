@@ -8,7 +8,10 @@ flask-login
 flask-migrate
 flask-sqlalchemy
 flask-wtf
-plaid-python<5
+matplotlib
+mpld3
+pandas
+plaid-python<5  # breaking changes since I developed plaid integration
 sqlalchemy
 toolz
-wtforms
+wtforms>=3  # default HTML5 fields

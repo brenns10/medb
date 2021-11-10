@@ -6,13 +6,13 @@ from datetime import timedelta
 from decimal import Decimal
 
 from flask_wtf import FlaskForm
+from wtforms.fields import DateField
 from wtforms.fields import DecimalField
 from wtforms.fields import Field
 from wtforms.fields import HiddenField
 from wtforms.fields import RadioField
 from wtforms.fields import SelectMultipleField
 from wtforms.fields import StringField
-from wtforms.fields.html5 import DateField
 from wtforms.form import Form
 from wtforms.validators import DataRequired
 from wtforms.validators import NumberRange
