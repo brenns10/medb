@@ -57,12 +57,12 @@ activity tracker data, sleep time, etc) and store it to my own service.
 This service will not have an extensive UI, but will feature a data model and be
 pretty useful for querying information.
 
-### Internet Tracking
+### Speedtest
 
-_Status: idea_
+_Status: basic implementation_
 
-Run speed test applications once in a while and store their results. Maybe pings
-too?
+Runs a speedtest each hour and stores the result in a database. View the results
+via matplotlib and d3.js!
 
 Development
 -----------
