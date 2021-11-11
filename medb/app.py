@@ -106,7 +106,7 @@ def register_periodic_tasks():
             "args": (),
         },
         "regular_iptest": {
-            "task": "medb.speedtest.tasks.perform_ipcheck",
+            "task": "medb.speedtest.tasks.ipcheck",
             "schedule": crontab(minute=7),
             "args": (),
         },
