@@ -2,6 +2,7 @@
 """Public section, including homepage and signup."""
 from datetime import date
 
+import click
 from flask import abort
 from flask import Blueprint
 from flask import flash
@@ -29,21 +30,39 @@ from .logic import get_plaid_items
 from .logic import get_transaction
 from .logic import get_transactions
 from .logic import get_upa_by_id
+from .logic import get_upi_by_id
 from .logic import initial_sync
+from .logic import ItemSummary
 from .logic import link_account
+from .logic import plaid_new_item_link_token
+from .logic import plaid_sandbox_reset_login
+from .logic import plaid_update_item_link_token
 from .logic import review_deleted_transaction
 from .logic import review_transaction as do_review_transaction
 from .logic import sync_account
+from .logic import UpdateLink
 from .models import Transaction
 from .models import UserPlaidAccount
 from medb.extensions import db
-from medb.settings import PLAID_ENV
-from medb.settings import PLAID_PUBLIC_KEY
 from medb.utils import flash_errors
 
 blueprint = Blueprint(
     "shiso", __name__, url_prefix="/shiso", static_folder="../static"
 )
+
+
+def _view_fetch_upi(item_id: int) -> ItemSummary:
+    item = get_upi_by_id(item_id)
+    if not item or item.user_id != current_user.id:
+        abort(404)
+    return item
+
+
+def _view_fetch_item_summary(item_id: int) -> ItemSummary:
+    item = get_item_summary(item_id)
+    if not item or item.user_id != current_user.id:
+        abort(404)
+    return item
 
 
 def _view_fetch_account(account_id: int) -> UserPlaidAccount:
@@ -63,6 +82,7 @@ def _view_fetch_transaction(txn_id: int) -> Transaction:
 @blueprint.route("/link/", methods=["GET", "POST"])
 @login_required
 def link():
+    link_token = plaid_new_item_link_token(current_user)
     form = LinkItemForm(request.form)
     if request.method == "POST":
         if form.validate_on_submit():
@@ -73,18 +93,37 @@ def link():
     return render_template(
         "shiso/link.html",
         form=form,
-        plaid_environment=PLAID_ENV,
-        plaid_public_key=PLAID_PUBLIC_KEY,
+        link_token=link_token,
+        update=None,
+        post_url=url_for(".link"),
+    )
+
+
+@blueprint.route("/plaid_item/<item_id>/update/", methods=["GET", "POST"])
+@login_required
+def update_link(item_id):
+    item = _view_fetch_upi(item_id)
+    form = LinkItemForm(request.form)
+    if request.method == "POST" and form.validate_on_submit():
+        flash("Item re-authenticated!", "success")
+        return redirect(url_for(".home"))
+    link_token = plaid_update_item_link_token(item)
+    return render_template(
+        "shiso/link.html",
+        form=form,
+        link_token=link_token,
+        update=item,
+        post_url=url_for(".update_link", item_id=item_id),
     )
 
 
 @blueprint.route("/plaid_item/<item_id>/", methods=["GET", "POST"])
 @login_required
 def link_accounts(item_id: int):
-    item_summary = get_item_summary(item_id)
-    if not item_summary or item_summary.user_id != current_user.id:
-        abort(404)
-
+    try:
+        item_summary = _view_fetch_item_summary(item_id)
+    except UpdateLink as e:
+        return redirect(url_for(".update_link", item_id=e.item_id))
     accounts = {a["account_id"]: a for a in item_summary.eligible_accounts}
     form = LinkAccountForm(request.form)
     form.link.choices = [
@@ -241,15 +280,18 @@ def account_sync(account_id: int):
     account = _view_fetch_account(account_id)
     form = SyncAccountForm(request.form)
     if form.validate_on_submit():
-        if not account.sync_start:
-            if not form.start_date.data:
-                flash("You must provide start date for initial sync")
+        try:
+            if not account.sync_start:
+                if not form.start_date.data:
+                    flash("You must provide start date for initial sync")
+                else:
+                    s = initial_sync(account, form.start_date.data)
+                    flash(f"Initial sync completed! {s.summarize()}", "success")
             else:
-                s = initial_sync(account, form.start_date.data)
-                flash(f"Initial sync completed! {s.summarize()}", "success")
-        else:
-            s = sync_account(account)
-            flash(f"Sync completed! {s.summarize()}", "success")
+                s = sync_account(account)
+                flash(f"Sync completed! {s.summarize()}", "success")
+        except UpdateLink as e:
+            return redirect(url_for(".update_link", item_id=e.item_id))
     else:
         flash_errors(form)
     return redirect(url_for(".account_transactions", account_id=account_id))
@@ -262,10 +304,13 @@ def global_sync():
     results = []
     if form.validate_on_submit():
         items = get_plaid_items(current_user)
-        for item in items:
-            for account in item.accounts:
-                if account.sync_start:
-                    results.append(sync_account(account))
+        try:
+            for item in items:
+                for account in item.accounts:
+                    if account.sync_start:
+                        results.append(sync_account(account))
+        except UpdateLink as e:
+            return redirect(url_for(".update_link", item_id=e.item_id))
     else:
         flash_errors(form)
     return render_template("shiso/global_sync_result.html", results=results)
@@ -381,3 +426,11 @@ def all_account_report():
             "end_date": form.end_date.data,
         },
     )
+
+
+@blueprint.cli.command("reset-item-login")
+@click.argument("item_id", type=int)
+def reset_item_login(item_id):
+    item = get_upi_by_id(item_id)
+    assert item
+    plaid_sandbox_reset_login(item)

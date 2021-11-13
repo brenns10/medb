@@ -15,6 +15,7 @@ from typing import Dict
 from typing import List
 
 import plaid
+from plaid.errors import ItemError
 from sqlalchemy import and_
 from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
@@ -30,7 +31,6 @@ from .models import UserPlaidItem
 from medb.extensions import db
 from medb.settings import PLAID_CLIENT_ID
 from medb.settings import PLAID_ENV
-from medb.settings import PLAID_PUBLIC_KEY
 from medb.settings import PLAID_SECRET
 from medb.user.models import User
 
@@ -171,12 +171,16 @@ class PlaidTransactionResponse:
     transactions: t.Iterator[PlaidTransaction]
 
 
+class UpdateLink(Exception):
+    def __init__(self, item_id):
+        self.item_id = item_id
+
+
 @lru_cache(maxsize=1)
 def plaid_client() -> plaid.Client:
     return plaid.Client(
         client_id=PLAID_CLIENT_ID,
         secret=PLAID_SECRET,
-        public_key=PLAID_PUBLIC_KEY,
         environment=PLAID_ENV,
         api_version="2018-05-22",
     )
@@ -194,7 +198,44 @@ def get_accounts(access_token: str) -> t.Any:
 
 def get_institution(ins_id: str) -> t.Any:
     client = plaid_client()
-    return client.Institutions.get_by_id(ins_id)
+    return client.Institutions.get_by_id(ins_id, ["US"])
+
+
+def plaid_new_item_link_token(user: User) -> str:
+    client = plaid_client()
+    response = client.LinkToken.create(
+        {
+            "user": {
+                "client_user_id": str(User.id),
+            },
+            "products": ["transactions"],
+            "client_name": "MeDB Shiso",
+            "country_codes": ["US"],
+            "language": "en",
+        }
+    )
+    return response["link_token"]
+
+
+def plaid_update_item_link_token(item_summary: ItemSummary) -> str:
+    client = plaid_client()
+    response = client.LinkToken.create(
+        {
+            "user": {
+                "client_user_id": str(item_summary.user_id),
+            },
+            "client_name": "MeDB Shiso",
+            "country_codes": ["US"],
+            "language": "en",
+            "access_token": item_summary.access_token,
+        }
+    )
+    return response["link_token"]
+
+
+def plaid_sandbox_reset_login(item_summary: ItemSummary):
+    client = plaid_client()
+    client.Sandbox.item.reset_login(item_summary.access_token)
 
 
 def is_eligible_account(acct: t.Dict) -> bool:
@@ -218,13 +259,19 @@ def create_item(user: User, form: LinkItemForm) -> UserPlaidItem:
     return item
 
 
-def get_item_summary(item_id: str) -> t.Optional[ItemSummary]:
+def get_item_summary(item_id: int) -> t.Optional[ItemSummary]:
     item = UserPlaidItem.query.options(joinedload("accounts")).get(item_id)
     if not item:
         return None
     linked_accounts = {acct.account_id for acct in item.accounts}
 
-    accounts = get_accounts(item.access_token)
+    try:
+        accounts = get_accounts(item.access_token)
+    except ItemError as e:
+        if e.code == "ITEM_LOGIN_REQUIRED":
+            raise UpdateLink(item_id)
+        else:
+            raise
     summary = ItemSummary(
         user_id=item.user_id,
         institution_name=item.institution_name,
@@ -268,6 +315,10 @@ def get_linked_accounts(user_id: int):
         .filter(UserPlaidItem.user_id == user_id)
         .all()
     )
+
+
+def get_upi_by_id(upi_id: int):
+    return UserPlaidItem.query.get(upi_id)
 
 
 def get_upa_by_id(upa_id: int):
@@ -366,11 +417,17 @@ def initial_sync(
         raise ValueError("Cannot initial sync, there are already transactions")
     today = datetime.date.today()
     days_ago = (today - start_date).days
-    plaid_txns = get_plaid_transactions(
-        acct.item.access_token,
-        days_ago=days_ago,
-        account_id=acct.account_id,
-    )
+    try:
+        plaid_txns = get_plaid_transactions(
+            acct.item.access_token,
+            days_ago=days_ago,
+            account_id=acct.account_id,
+        )
+    except ItemError as e:
+        if e.code == "ITEM_LOGIN_REQUIRED":
+            raise UpdateLink(acct.item_id)
+        else:
+            raise
     report = SyncReport(account=acct)
     for pt in plaid_txns.transactions:
         db.session.add(pt.to_plaid_transaction(acct.id))
@@ -393,11 +450,17 @@ def sync_account(acct: UserPlaidAccount) -> SyncReport:
     ).all()
     local_txns_by_plaid_id = {t.plaid_txn_id: t for t in local_txns}
 
-    plaid_txns = get_plaid_transactions(
-        acct.item.access_token,
-        days_ago=days_ago,
-        account_id=acct.account_id,
-    )
+    try:
+        plaid_txns = get_plaid_transactions(
+            acct.item.access_token,
+            days_ago=days_ago,
+            account_id=acct.account_id,
+        )
+    except ItemError as e:
+        if e.code == "ITEM_LOGIN_REQUIRED":
+            raise UpdateLink(acct.item_id)
+        else:
+            raise
 
     report = SyncReport(account=acct)
     fields = [

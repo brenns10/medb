@@ -1,13 +1,25 @@
 {% extends "layout.html" %}
-{% block title %}Link An Account{% endblock %}
+{% block title %}{{ "Re-auth" if update else "Link" }} Institution{% endblock %}
 {% block content %}
   <div class="centered-content">
-  <h1>Link Financial Account</h1>
-  <form style="display: none" method="POST" action="{{url_for('shiso.link')}}" id="link-form">
+  {% if update %}
+    <h1>Re-Auth Institution</h1>
+    <div class="alert alert-info">
+      <p>
+        Your integration with {{ update.institution_name }} needs to be
+        updated! Please complete the steps below.
+      </p>
+    </div>
+  {% else %}
+    <h1>Link an Institution</h1>
+  {% endif %}
+  <form style="display: none" method="POST" action="{{post_url}}" id="link-form">
     {{ form.csrf_token }}
     {{ form.hidden_tag() }}
   </form>
-  <button type="button" class="btn btn-primary" id="link-button">Link Account</button>
+  <button type="button" class="btn btn-primary" id="link-button">
+    {{"Update" if update else "Link"}} Account
+  </button>
   </div>
 {% endblock %}
 {% block body_js %}
@@ -15,10 +27,7 @@
   <script type="text/javascript">
     (function($) {
       var handler = Plaid.create({
-        clientName: 'MeDB Shiso',
-        env: '{{ plaid_environment }}',
-        key: '{{ plaid_public_key }}',
-        product: ['transactions'],
+        token: '{{ link_token }}',
         // Optional – use webhooks to get transaction and error updates
         //webhook: '',
         onLoad: function() {
