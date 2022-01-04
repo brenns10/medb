@@ -10,7 +10,6 @@ from sqlalchemy import Date
 from sqlalchemy import Enum
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
-from sqlalchemy import Numeric
 from sqlalchemy import String
 from sqlalchemy.sql import expression
 
@@ -193,16 +192,3 @@ class TransactionReview(Model):
             name="transaction_review__transaction_id__unique",
         ),
     )
-
-
-class Balance(Model):
-    __tablename__ = "account_balance"
-    __table_args__ = (db.UniqueConstraint("account_id", "date"),)
-
-    id = Column(Integer, primary_key=True)
-    account_id = Column(
-        Integer, ForeignKey("user_plaid_account.id"), nullable=False
-    )
-
-    amount = Column(Numeric(16, 3), nullable=False)
-    date = Column(Date, nullable=False)
