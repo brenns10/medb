@@ -35,8 +35,14 @@ def login():
     # Handle logging in
     if request.method == "POST":
         if form.validate_on_submit():
-            login_user(form.user)
-            flash("You are logged in.", "success")
+            login_user(form.user, remember=form.remember)
+            if form.remember:
+                flash(
+                    "You are logged in, and your session will be remembered.",
+                    "success",
+                )
+            else:
+                flash("You are logged in.", "success")
             # NOTE: could accept a "next" for redirect, but for simplicity
             # (and security, ish) omitted this
             return redirect(url_for("public.home"))
