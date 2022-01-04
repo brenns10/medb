@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Public section, including homepage and signup."""
 from datetime import date
+from decimal import Decimal
 
 import click
 from flask import abort
@@ -9,9 +10,11 @@ from flask import flash
 from flask import redirect
 from flask import render_template
 from flask import request
+from flask import session
 from flask import url_for
 from flask_login import current_user
 from flask_login import login_required
+from markupsafe import Markup
 
 from .forms import AccountRenameForm
 from .forms import AccountReportForm
@@ -428,9 +431,24 @@ def all_account_report():
     )
 
 
+@blueprint.route("/privacy/toggle/", methods=["GET"])
+@login_required
+def privacy_toggle():
+    session["privacy"] = not session.get("privacy", False)
+    return redirect(url_for(".home"))
+
+
 @blueprint.cli.command("reset-item-login")
 @click.argument("item_id", type=int)
 def reset_item_login(item_id):
     item = get_upi_by_id(item_id)
     assert item
     plaid_sandbox_reset_login(item)
+
+
+@blueprint.app_template_filter("usd")
+def usd(text):
+    if session.get("privacy"):
+        return Markup("$&mdash;.&mdash;")
+    value = Decimal(text)
+    return f"${value:.2f}"

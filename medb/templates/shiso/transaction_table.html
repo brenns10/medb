@@ -20,8 +20,8 @@
         <td><a href="{{url_for(review_dest, txn_id=txn.id)}}">{{txn.original_date}}</a></td>
         <td>{{txn.name}}</td>
         <td>{{txn.review.category if txn.review else "" }}</td>
-        <td class="text-right">{{'$%.2f' | format(txn.amount)}}</td>
-        <td class="text-right">{{'$%.2f' | format(txn.review.reimbursement_amount if txn.review else 0)}}</td>
+        <td class="text-right">{{txn.amount | usd}}</td>
+        <td class="text-right">{{(txn.review.reimbursement_amount if txn.review else 0) | usd}}</td>
       </tr>
     {% endfor %}
   </tbody>

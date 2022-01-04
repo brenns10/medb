@@ -31,12 +31,12 @@
       {% endif %}
       <tr>
         <th scope="row">Amount</td>
-        <td>{{'$%.2f' | format(txn.amount)}}</td>
+        <td>{{txn.amount | usd}}</td>
       </tr>
       {% if txn.review and txn.amount != txn.review.reviewed_amount and txn.review.reviewed_amount is not none %}
         <tr>
           <th scope="row">Amount (old)</td>
-          <td>{{'$%.2f' | format(txn.review.reviewed_amount)}}</td>
+          <td>{{txn.review.reviewed_amount | usd}}</td>
         </tr>
       {% endif %}
       <tr>

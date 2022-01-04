@@ -33,16 +33,16 @@
       {% for cat in report.categories %}
         <tr>
           <td><a href="{{url_for('.all_account_transactions', category=cat, **txn_args)}}">{{cat}}</a></td>
-          <td class="text-right">{{'$%.2f' | format(report.share_categorized[cat])}}</td>
-          <td class="text-right">{{'$%.2f' | format(report.reimbursed_categorized[cat])}}</td>
-          <td class="text-right">{{'$%.2f' | format(report.all_categorized[cat])}}</td>
+          <td class="text-right">{{report.share_categorized[cat] | usd}}</td>
+          <td class="text-right">{{report.reimbursed_categorized[cat] | usd}}</td>
+          <td class="text-right">{{report.all_categorized[cat] | usd}}</td>
         </tr>
       {% endfor %}
       <tr>
         <th scope="row">All Categories</th>
-        <td class="text-right">{{'$%.2f' | format(report.share_net)}}</td>
-        <td class="text-right">{{'$%.2f' | format(report.reimbursed_net)}}</td>
-        <td class="text-right">{{'$%.2f' | format(report.all_net)}}</td>
+        <td class="text-right">{{report.share_net | usd}}</td>
+        <td class="text-right">{{report.reimbursed_net | usd}}</td>
+        <td class="text-right">{{report.all_net | usd}}</td>
       </tr>
     </tbody>
   </table>
@@ -51,7 +51,7 @@
     <p>
       Note: this report ignores {{report.unreviewed_count}} transactions which
       have not been reviewed, and thus have no data. They account for
-      {{'$%.2f' | format(report.unreviewed_net)}} of transactions. Please review
+      {{report.unreviewed_net | usd}} of transactions. Please review
       those transactions to make sure the report is complete.
     </p>
   {% endif %}

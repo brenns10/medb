@@ -22,4 +22,9 @@
 <p><a class="btn btn-md btn-secondary" href="{{url_for('.global_review')}}">Transaction Review</a></p>
 {% endif %}
 <p><a class="btn btn-md btn-secondary" href="{{url_for('.link')}}">Link new financial institution</a></p>
+
+<p>
+  Privacy mode is {% if session.get("privacy") %}enabled{% else %}disabled{% endif %}.
+  <a href="{{url_for('.privacy_toggle')}}">Toggle it.</a>
+</p>
 {% endblock %}
