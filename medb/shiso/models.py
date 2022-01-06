@@ -136,6 +136,12 @@ class Transaction(Model):
         default=utcnow,
     )
 
+    subscription_id = Column(Integer, nullable=True)
+    subscription = db.relationship(
+        "Subscription",
+        backref=db.backref("transactions", lazy="select"),
+    )
+
     account = db.relationship(
         "UserPlaidAccount",
         backref=db.backref("transactions", lazy="select"),
@@ -147,6 +153,14 @@ class Transaction(Model):
     @property
     def needs_review(self):
         return self.review is None or self.review.updated < self.updated
+
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            ["subscription_id"],
+            ["subscription.id"],
+            name="transaction__fk_subscription_id",
+        ),
+    )
 
 
 class TransactionReview(Model):
@@ -192,3 +206,37 @@ class TransactionReview(Model):
             name="transaction_review__transaction_id__unique",
         ),
     )
+
+
+class Subscription(Model):
+    """
+    Represents a monthly subscription which is automatically tracked
+
+    Most of the "metadata" of a subscription is determined simply by looking at
+    the most recent transaction in it. (e.g. subscription price, day of month).
+    """
+
+    __tablename__ = "subscription"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+
+    # Subscriptions are associated with an account to reduce false positives
+    account_id = Column(
+        Integer, ForeignKey("user_plaid_account.id"), nullable=False
+    )
+
+    # Subscriptions are tracked via regular expression match.
+    regex = Column(String, nullable=False)
+
+    # Auto-detected transactions are flagged as new.
+    is_new = Column(Boolean, nullable=False)
+
+    # All name patterns which "look like" subscriptions to the detector will
+    # appear in the database. However, only "tracked" ones (i.e. those confirmed
+    # by the user) will show on the UI.
+    is_tracked = Column(Boolean, nullable=False)
+
+    # Active subscriptions - should still charge every month. Inactive
+    # subscriptions should not - if they do, it's a warning.
+    is_active = Column(Boolean, nullable=False)

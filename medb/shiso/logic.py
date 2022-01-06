@@ -6,6 +6,7 @@ import dataclasses
 import datetime
 import enum
 import json
+import re
 import typing as t
 from dataclasses import dataclass
 from dataclasses import field
@@ -24,6 +25,7 @@ from toolz import keyfilter
 from .forms import LinkItemForm
 from .forms import TransactionReviewForm
 from .models import PaymentChannel
+from .models import Subscription
 from .models import Transaction
 from .models import TransactionReview
 from .models import UserPlaidAccount
@@ -450,6 +452,8 @@ def sync_account(acct: UserPlaidAccount) -> SyncReport:
     ).all()
     local_txns_by_plaid_id = {t.plaid_txn_id: t for t in local_txns}
 
+    subs = get_subscriptions(acct.id)
+
     try:
         plaid_txns = get_plaid_transactions(
             acct.item.access_token,
@@ -484,7 +488,13 @@ def sync_account(acct: UserPlaidAccount) -> SyncReport:
             stored_txn.plaid_txn_id = txn_id
             report.posted_updates += 1
             del local_txns_by_plaid_id[prev_txn_id]
+        subscription = match_subscription(subs, plaid_txn)
         if stored_txn:
+            # By Executive order of the High Stephen: subscription shall not be
+            # reassigned from one non-NULL value to another. This would be
+            # confusing.
+            if not stored_txn.subscription:
+                stored_txn.subscription = subscription
             changed_fields = []
             for fn in fields:
                 if getattr(plaid_txn, fn) != getattr(stored_txn, fn):
@@ -509,6 +519,7 @@ def sync_account(acct: UserPlaidAccount) -> SyncReport:
                 report.unchanged += 1
         else:
             report.new += 1
+            plaid_txn.subscription = subscription
             db.session.add(plaid_txn)
     acct.sync_end = today
     db.session.add(acct)
@@ -756,3 +767,198 @@ def compute_transaction_report(txns: t.List[Transaction]) -> TransactionReport:
         share_categorized=share_categorized,
         reimbursed_categorized=reimbursed_categorized,
     )
+
+
+class SubscriptionDetector:
+    """
+    Name based subscription detection
+
+    This class implements the initial detection of subscriptions. The
+    approach is to use name and date-based matching for the initial detection.
+    Once a subscription is detected, we stop using this subscription matching
+    mechanism.
+
+    The trick is to avoid re-detecting the same subscriptions, and to stop
+    detecting false positives once the user has annotated them as "NOT a
+    subscription." Both of these can be achieved by filtering transactions
+    with a subscription ID.
+    """
+
+    new: t.Dict[re.Pattern, t.Tuple[str, t.List[Transaction]]]
+    singletons: t.List[Transaction]
+
+    def __init__(self):
+        self.new = dict()
+        self.singletons = []
+
+    def name_match(self, name: str, ref: str) -> bool:
+        """
+        The super-rough name matching system.
+
+        The "real" matching is done later on by regular expression, so these
+        funky rules only get used for initial detection. I've decided to guess
+        something is a name match if it has the same number of "tokens", and
+        more of those tokens match than do not match. This allows transaction
+        names like the following to be similar:
+
+            HULU *TXNID1111 HULU DIRECT PAY DATE1111
+            HULU *TXNID2222 HULU DIRECT PAY DATE2222
+
+        But others, like these, will not be matched as "similar":
+
+            SQ *MERCHANT1111 DATE1111
+            SQ *MERCHANT2222 DATE2222
+
+        However, this is super rough, and admittedly sometimes things get lumped
+        together. I should improve this later on.
+        """
+        if name == ref:
+            return True
+        name_tokens = name.split()
+        ref_tokens = ref.split()
+        if len(name_tokens) != len(ref_tokens):
+            return False
+        differ = 0
+        for ntok, rtok in zip(name_tokens, ref_tokens):
+            if ntok != rtok:
+                differ += 1
+        return len(name_tokens) - differ > differ
+
+    def re_escape(self, string: str) -> str:
+        """
+        Given a string, escape its characters so that it can be used as a regex
+        to match itself.
+        """
+        special = "\\.*+-^${}()[]|"
+        return "".join([("\\" + c) if c in special else c for c in string])
+
+    def create_expr(self, name: str, ref: str) -> t.Tuple[str, re.Pattern]:
+        """
+        If self.name_match() returned True, use this to create a corresponding
+        regular expression. This will be used for later matches.
+        """
+        expr = []
+        tmpl = []
+        for ntok, rtok in zip(name.split(), ref.split()):
+            if ntok == rtok:
+                expr.append(self.re_escape(rtok))
+                tmpl.append(rtok)
+            else:
+                expr.append("\\S+")
+                tmpl.append("XXX")
+        return " ".join(tmpl), re.compile("\\s+".join(expr))
+
+    def add_transaction(self, txn: Transaction):
+        """
+        Helper function for adding historical transactions for detection.
+        """
+        if txn.subscription_id is not None:
+            return
+        for expr in self.new.keys():
+            if expr.match(txn.name):
+                self.new[expr][1].append(txn)
+                return
+        for i, ref_txn in enumerate(self.singletons):
+            if self.name_match(txn.name, ref_txn.name):
+                tmpl, expr = self.create_expr(txn.name, ref_txn.name)
+                self.new[expr] = (tmpl, [ref_txn, txn])
+                del self.singletons[i]
+                return
+        self.singletons.append(txn)
+
+    def add_transactions(self, txns: t.List[Transaction]):
+        """Add all transactions to the detector."""
+        for txn in sorted(txns, key=lambda t: t.date, reverse=True):
+            self.add_transaction(txn)
+
+    def filter_infrequent(self):
+        """Kick out transaction groupings which don't have at least three"""
+        for key in list(self.new.keys()):
+            if len(self.new[key][1]) <= 2:
+                del self.new[key]
+
+    def filter_nonmonthly(self):
+        """Kick out transactions which aren't monthly."""
+        for key in list(self.new.keys()):
+            txns = self.new[key][1]
+            prev_date = None
+            filter_out = False
+            for txn in txns:
+                if prev_date is None:
+                    if datetime.date.today() - txn.date > datetime.timedelta(
+                        days=33
+                    ):
+                        filter_out = True
+                    prev_date = txn.date
+                    continue
+                expected_month = (
+                    12 if prev_date.month == 1 else prev_date.month - 1
+                )
+                if txn.date.month != expected_month:
+                    filter_out = True
+                    break
+                prev_date = txn.date
+            if filter_out:
+                del self.new[key]
+
+    def detect(
+        self,
+        txns: t.List[Transaction],
+    ) -> t.Dict[re.Pattern, t.Tuple[str, t.List[Transaction]]]:
+        self.add_transactions(txns)
+        self.filter_infrequent()
+        self.filter_nonmonthly()
+        return self.new
+
+
+def get_subscriptions(account_id: int) -> t.List[Subscription]:
+    """
+    Return all subscriptions for this account.
+    """
+    return Subscription.query.filter(
+        Subscription.account_id == account_id
+    ).all()
+
+
+def match_subscription(
+    subs: t.List[Subscription],
+    txn: Transaction,
+) -> t.Optional[Subscription]:
+    """
+    Given a list of relevant subscriptions, check if txn matches any, and if so,
+    return it.
+    """
+    for sub in subs:
+        if sub.account_id == txn.account_id and re.match(sub.regex, txn.name):
+            return sub
+    return None
+
+
+def subscription_search(account: UserPlaidAccount) -> t.List[Subscription]:
+    """
+    For a given account, search for new subscriptions.
+    Subscription search is done with at most 6 months data.
+    """
+    detector = SubscriptionDetector()
+    start = datetime.date.today() - datetime.timedelta(days=31 * 6)
+    txns = get_transactions(account, start_date=start)
+    result = detector.detect(txns)
+    if not result:
+        return []
+    subs = []
+    for expr, (tmpl, sub_txns) in result.items():
+        sub = Subscription(
+            name=tmpl,
+            account_id=account.id,
+            regex=expr.pattern,
+            is_new=True,
+            is_tracked=False,
+            is_active=True,
+        )
+        db.session.add(sub)
+        subs.append(sub)
+        for txn in sub_txns:
+            txn.subscription = sub
+            db.session.add(txn)
+    db.session.commit()
+    return subs
