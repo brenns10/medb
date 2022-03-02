@@ -14,7 +14,7 @@ class LoginForm(FlaskForm):
 
     username = StringField("Username", validators=[DataRequired()])
     password = PasswordField("Password", validators=[DataRequired()])
-    remember = BooleanField("Remember me", validators=[DataRequired()])
+    remember = BooleanField("Remember me", validators=[])
 
     def __init__(self, *args, **kwargs):
         """Create instance."""

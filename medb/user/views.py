@@ -35,8 +35,8 @@ def login():
     # Handle logging in
     if request.method == "POST":
         if form.validate_on_submit():
-            login_user(form.user, remember=form.remember)
-            if form.remember:
+            login_user(form.user, remember=form.remember.data)
+            if form.remember.data:
                 flash(
                     "You are logged in, and your session will be remembered.",
                     "success",
