@@ -33,7 +33,7 @@ from .logic import get_linked_accounts
 from .logic import get_next_unreviewed_subscription
 from .logic import get_next_unreviewed_transaction
 from .logic import get_plaid_items
-from .logic import get_subscriptions
+from .logic import get_subscriptions_transactions
 from .logic import get_transaction
 from .logic import get_transactions
 from .logic import get_upa_by_id
@@ -491,12 +491,22 @@ def subscription_show(sub_id):
 @blueprint.route("/subscription/", methods=["GET"])
 @login_required
 def subscription_list():
-    subs = []
-    for account in all_accounts():
-        subs.extend(get_subscriptions(account.id))
+    new_subs = []
+    reviewed_subs = []
+    untracked_subs = []
+    for sub in get_subscriptions_transactions(current_user):
+        sub.transactions.sort(key=lambda t: t.date)
+        if sub.is_new:
+            new_subs.append(sub)
+        elif sub.is_tracked:
+            reviewed_subs.append(sub)
+        else:
+            untracked_subs.append(sub)
     return render_template(
         "shiso/subscription_list.html",
-        subs=subs,
+        new_subs=new_subs,
+        reviewed_subs=reviewed_subs,
+        untracked_subs=untracked_subs,
     )
 
 

@@ -986,3 +986,17 @@ def get_next_unreviewed_subscription(user: User) -> Transaction:
         .order_by(Subscription.id)
         .first()
     )
+
+
+def get_subscriptions_transactions(user: User) -> Subscription:
+    """
+    Return all subscriptions, with the transactions loaded.
+    """
+    return (
+        Subscription.query.options(db.joinedload(Subscription.transactions))
+        .options(db.joinedload(Subscription.account))
+        .join(UserPlaidAccount)
+        .join(UserPlaidItem)
+        .filter(UserPlaidItem.user_id == user.id)
+        .all()
+    )

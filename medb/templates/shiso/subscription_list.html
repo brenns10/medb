@@ -1,25 +1,49 @@
 {% extends "layout.html" %}
 {% block title %}Subscriptions{% endblock %}
 {% block content %}
+  {% macro show_table(subs, header) %}
+    {% if subs %}
+      <h3>{{ header }}</h3>
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th></th>
+              <th scope="col">Name</th>
+              <th scope="col">Account</th>
+              <th scope="col">Last Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sub in subs %}
+              <tr>
+                <td>
+                  {% if sub.is_new %}
+                    <span class="fa fa-edit fa-md main-list-item-icon"></span>
+                  {% endif %}
+                </td>
+                <td>
+                  <a href="{{ url_for('.subscription_show', sub_id=sub.id) }}">
+                    {{ sub.name }}
+                  </a>
+                </td>
+                <td>
+                  <a href="{{url_for('.account_transactions', account_id=sub.account_id)}}">
+                    {{ sub.account.name }}
+                  </a>
+                </td>
+                <td>
+                  {{ sub.transactions[-1].amount | usd }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  {% endmacro %}
   <h1>Subscriptions</h1>
-  <div class="table-responsive">
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th scope="col">Name</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for sub in subs %}
-          <tr>
-            <td>
-              <a href="{{ url_for('.subscription_show', sub_id=sub.id) }}">
-                {{ sub.name }}
-              </a>
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  {{ show_table(new_subs, "Unreviewed") }}
+  {{ show_table(reviewed_subs, "Reviewed") }}
+  {{ show_table(untracked_subs, "Untracked") }}
 {% endblock %}
