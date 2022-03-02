@@ -5,7 +5,7 @@
   <table class="table table-striped">
     <tbody>
       <tr>
-        <th scope="row">Account</td>
+        <th scope="row">Account</th>
         <td>{{txn.account.name}}</td>
       </tr>
       <tr>
@@ -14,52 +14,52 @@
       </tr>
       {% if txn.review and txn.name != txn.review.reviewed_name and txn.review.reviewed_name is not none %}
         <tr>
-          <th scope="row">Description (old)</td>
+          <th scope="row">Description (old)</th>
           <td>{{txn.review.reviewed_name}}</td>
         </tr>
       {% endif %}
       <tr>
-        <th scope="row">Merchant</td>
+        <th scope="row">Merchant</th>
         <td>{{txn.plaid_merchant_name}}</td>
       </tr>
       {% if txn.review and txn.plaid_merchant_name != txn.review.reviewed_plaid_merchant_name
             and txn.review.reviewed_plaid_merchant_name is not none %}
         <tr>
-          <th scope="row">Merchant (old)</td>
+          <th scope="row">Merchant (old)</th>
           <td>{{txn.review.reviewed_plaid_merchant_name}}</td>
         </tr>
       {% endif %}
       <tr>
-        <th scope="row">Amount</td>
+        <th scope="row">Amount</th>
         <td>{{txn.amount | usd}}</td>
       </tr>
       {% if txn.review and txn.amount != txn.review.reviewed_amount and txn.review.reviewed_amount is not none %}
         <tr>
-          <th scope="row">Amount (old)</td>
+          <th scope="row">Amount (old)</th>
           <td>{{txn.review.reviewed_amount | usd}}</td>
         </tr>
       {% endif %}
       <tr>
-        <th scope="row">Date First Seen</td>
+        <th scope="row">Date First Seen</th>
         <td>{{txn.original_date}}</td>
       </tr>
       <tr>
-        <th scope="row">Date</td>
+        <th scope="row">Date</th>
         <td>{{txn.date}}</td>
       </tr>
       {% if txn.review and txn.date != txn.review.reviewed_date and txn.review.reviewed_date is not none %}
         <tr>
-          <th scope="row">Date (old)</td>
+          <th scope="row">Date (old)</th>
           <td>{{txn.review.reviewed_date}}</td>
         </tr>
       {% endif %}
       <tr>
-        <th scope="row">Posted</td>
+        <th scope="row">Posted</th>
         <td>{% if txn.posted %}Yes{% else %}No{% endif %}</td>
       </tr>
       {% if txn.review and txn.posted != txn.review.reviewed_posted and txn.review.reviewed_posted is not none %}
         <tr>
-          <th scope="row">Posted (old)</td>
+          <th scope="row">Posted (old)</th>
           <td>{% if txn.review.reviewed_posted %}Yes{% else %}No{% endif %}</td>
       </tr>
         </tr>
