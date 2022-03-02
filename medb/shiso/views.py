@@ -452,3 +452,10 @@ def usd(text):
         return Markup("$&mdash;.&mdash;")
     value = Decimal(text)
     return f"${value:.2f}"
+
+
+@blueprint.app_template_filter("yesno")
+def yesno(value):
+    if value:
+        return "Yes"
+    return "No"

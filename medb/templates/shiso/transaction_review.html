@@ -55,12 +55,12 @@
       {% endif %}
       <tr>
         <th scope="row">Posted</th>
-        <td>{% if txn.posted %}Yes{% else %}No{% endif %}</td>
+        <td>{{ txn.posted | yesno }}</td>
       </tr>
       {% if txn.review and txn.posted != txn.review.reviewed_posted and txn.review.reviewed_posted is not none %}
         <tr>
           <th scope="row">Posted (old)</th>
-          <td>{% if txn.review.reviewed_posted %}Yes{% else %}No{% endif %}</td>
+          <td>{{ txn.review.reviewed_posted | yesno }}</td>
       </tr>
         </tr>
       {% endif %}
