@@ -6,6 +6,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from flask_wtf import FlaskForm
+from wtforms.fields import BooleanField
 from wtforms.fields import DateField
 from wtforms.fields import DecimalField
 from wtforms.fields import Field
@@ -119,6 +120,13 @@ class TransactionReviewForm(FlaskForm):
             NumberRange(min=Decimal(0), max=txn.amount)
         )
         return form
+
+
+class SubscriptionReviewForm(FlaskForm):
+    """Used to update subscriptions"""
+
+    name = StringField("Subscription Name", validators=[DataRequired()])
+    is_tracked = BooleanField("Confirmed")
 
 
 # NOTE: not FlaskForm since submitted via GET, no need for CSRF

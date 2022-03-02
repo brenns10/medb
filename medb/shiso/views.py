@@ -21,6 +21,7 @@ from .forms import AccountRenameForm
 from .forms import AccountReportForm
 from .forms import LinkAccountForm
 from .forms import LinkItemForm
+from .forms import SubscriptionReviewForm
 from .forms import SyncAccountForm
 from .forms import TransactionListForm
 from .forms import TransactionReviewForm
@@ -454,15 +455,26 @@ def privacy_toggle():
     return redirect(url_for(".home"))
 
 
-@blueprint.route("/subscription/<int:sub_id>/", methods=["GET"])
+@blueprint.route("/subscription/<int:sub_id>/", methods=["GET", "POST"])
 @login_required
 def subscription_show(sub_id):
     sub = _view_fetch_subscription(sub_id)
     sub_txns = get_transactions(sub.account, subscription_id=sub_id)
+    if request.method == "POST":
+        form = SubscriptionReviewForm(request.form)
+        if form.validate_on_submit():
+            form.populate_obj(sub)
+            sub.is_new = False
+            db.session.commit()
+        else:
+            flash_errors(form)
+    else:
+        form = SubscriptionReviewForm(obj=sub)
     return render_template(
         "shiso/subscription_show.html",
         sub=sub,
         txns=sub_txns,
+        form=form,
     )
 
 
