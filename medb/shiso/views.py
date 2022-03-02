@@ -30,6 +30,7 @@ from .logic import create_item
 from .logic import get_all_user_transactions
 from .logic import get_item_summary
 from .logic import get_linked_accounts
+from .logic import get_next_unreviewed_subscription
 from .logic import get_next_unreviewed_transaction
 from .logic import get_plaid_items
 from .logic import get_subscriptions
@@ -461,11 +462,20 @@ def subscription_show(sub_id):
     sub = _view_fetch_subscription(sub_id)
     sub_txns = get_transactions(sub.account, subscription_id=sub_id)
     if request.method == "POST":
+        action = request.form["action"]
         form = SubscriptionReviewForm(request.form)
         if form.validate_on_submit():
             form.populate_obj(sub)
             sub.is_new = False
             db.session.commit()
+            if action == "next":
+                next_sub = get_next_unreviewed_subscription(current_user)
+                if next_sub:
+                    return redirect(
+                        url_for(".subscription_show", sub_id=next_sub.id)
+                    )
+                else:
+                    return redirect(url_for(".subscription_list"))
         else:
             flash_errors(form)
     else:

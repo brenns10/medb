@@ -972,3 +972,17 @@ def subscription_search(account: UserPlaidAccount) -> t.List[Subscription]:
             db.session.add(txn)
     db.session.commit()
     return subs
+
+
+def get_next_unreviewed_subscription(user: User) -> Transaction:
+    """
+    Return the next unreviewed transaction.
+    """
+    return (
+        Subscription.query.join(UserPlaidAccount)
+        .join(UserPlaidItem)
+        .filter(UserPlaidItem.user_id == user.id)
+        .filter(Subscription.is_new)
+        .order_by(Subscription.id)
+        .first()
+    )

@@ -38,7 +38,10 @@
       {{ form.is_tracked.label(class_="form-check-label") }}
     </div>
     <div class="form-group">
-      <button class="btn btn-lg btn-primary" type="submit">Review</button>
+      <button class="btn btn-lg btn-primary" type="submit"
+              name="action" value="save">Save</button>
+      <button class="btn btn-lg btn-secondary" type="submit"
+              name="action" value="next">Save+Next</button>
     </div>
   </form>
   <h2>Subscription Transactions</h2>
