@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% block title %}Subscription - {{ sub.name }}{% endblock %}
+{% block content %}
+  <h1>Subscription - {{ sub.name }}</h1>
+  <table class="table table-striped">
+    <tbody>
+      <tr>
+        <th scope="row">Account</th>
+        <td><a href="{{ url_for('.account_transactions', account_id=sub.account.id) }}">{{ sub.account.name }}</a></td>
+      </tr>
+      <tr>
+        <th scope="row">Regex</th>
+        <td><pre>{{ sub.regex }}</pre></td>
+      </tr>
+      <tr>
+        <th scope="row">New</th>
+        <td>{{ sub.is_new | yesno }}</td>
+      </tr>
+      <tr>
+        <th scope="row">Confirmed</th>
+        <td>{{ sub.is_tracked | yesno }}</td>
+      </tr>
+      <tr>
+        <th scope="row">Active</th>
+        <td>{{ sub.is_active | yesno }}</td>
+      </tr>
+    </tbody>
+  </table>
+  <h2>Subscription Transactions</h2>
+  {% include "shiso/transaction_table.html" %}
+{% endblock %}

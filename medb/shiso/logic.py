@@ -380,11 +380,15 @@ class SyncReport:
     updated_posted: int = 0
     updated_plaid_merchant_name: int = 0
 
+    new_subscriptions: int = 0
+
     def summarize(self) -> str:
         s = (
             f"Added {self.new} new transactions, updated {self.updated}, and"
             f" saw {self.unchanged} unchanged transactions."
         )
+        if self.new_subscriptions:
+            s += f" Detected {self.new_subscriptions} new subscriptions."
         if self.rereview:
             s += (
                 f" Of the updated transactions, {self.rereview} need re-review."
@@ -536,6 +540,9 @@ def sync_account(acct: UserPlaidAccount) -> SyncReport:
         db.session.add(txn)
         report.missing_list.append(txn)
     db.session.commit()
+
+    subs = subscription_search(acct)
+    report.new_subscriptions = len(subs)
     return report
 
 
@@ -543,6 +550,7 @@ def get_transactions(
     acct: UserPlaidAccount,
     start_date: t.Optional[datetime.date] = None,
     end_date: t.Optional[datetime.date] = None,
+    subscription_id: t.Optional[int] = None,
 ) -> t.List[Transaction]:
     query = Transaction.query.options(
         db.joinedload(Transaction.review),
@@ -554,6 +562,8 @@ def get_transactions(
         query = query.filter(Transaction.original_date >= start_date)
     if end_date:
         query = query.filter(Transaction.original_date <= end_date)
+    if subscription_id is not None:
+        query = query.filter(Transaction.subscription_id == subscription_id)
     return query.order_by(
         Transaction.original_date.desc(),
         Transaction.id.desc(),

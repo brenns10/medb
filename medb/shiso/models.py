@@ -240,3 +240,8 @@ class Subscription(Model):
     # Active subscriptions - should still charge every month. Inactive
     # subscriptions should not - if they do, it's a warning.
     is_active = Column(Boolean, nullable=False)
+
+    account = db.relationship(
+        "UserPlaidAccount",
+        backref=db.backref("subscriptions", lazy="select"),
+    )

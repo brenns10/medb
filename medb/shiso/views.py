@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Public section, including homepage and signup."""
+import typing as t
 from datetime import date
 from decimal import Decimal
 
@@ -30,6 +31,7 @@ from .logic import get_item_summary
 from .logic import get_linked_accounts
 from .logic import get_next_unreviewed_transaction
 from .logic import get_plaid_items
+from .logic import get_subscriptions
 from .logic import get_transaction
 from .logic import get_transactions
 from .logic import get_upa_by_id
@@ -44,6 +46,7 @@ from .logic import review_deleted_transaction
 from .logic import review_transaction as do_review_transaction
 from .logic import sync_account
 from .logic import UpdateLink
+from .models import Subscription
 from .models import Transaction
 from .models import UserPlaidAccount
 from medb.extensions import db
@@ -80,6 +83,19 @@ def _view_fetch_transaction(txn_id: int) -> Transaction:
     if not txn or txn.account.item.user_id != current_user.id:
         abort(404)
     return txn
+
+
+def _view_fetch_subscription(sub_id: int) -> Subscription:
+    sub = Subscription.query.get(sub_id)
+    if not sub:
+        abort(404)
+    return sub
+
+
+def all_accounts() -> t.Iterator[UserPlaidAccount]:
+    for item in get_plaid_items(current_user):
+        for account in item.accounts:
+            yield account
 
 
 @blueprint.route("/link/", methods=["GET", "POST"])
@@ -436,6 +452,30 @@ def all_account_report():
 def privacy_toggle():
     session["privacy"] = not session.get("privacy", False)
     return redirect(url_for(".home"))
+
+
+@blueprint.route("/subscription/<int:sub_id>/", methods=["GET"])
+@login_required
+def subscription_show(sub_id):
+    sub = _view_fetch_subscription(sub_id)
+    sub_txns = get_transactions(sub.account, subscription_id=sub_id)
+    return render_template(
+        "shiso/subscription_show.html",
+        sub=sub,
+        txns=sub_txns,
+    )
+
+
+@blueprint.route("/subscription/", methods=["GET"])
+@login_required
+def subscription_list():
+    subs = []
+    for account in all_accounts():
+        subs.extend(get_subscriptions(account.id))
+    return render_template(
+        "shiso/subscription_list.html",
+        subs=subs,
+    )
 
 
 @blueprint.cli.command("reset-item-login")
