@@ -4,26 +4,37 @@
 <h1>Shiso</h1>
 <p>Your linked institutions and accounts:</p>
 {% for item in items %}
-  <a href="{{url_for('.link_accounts', item_id=item.id)}}">{{item.institution_name}}</a>
-  <ul>
-    {% for acct in item.accounts %}
-    <li><a href="{{url_for('.account_transactions', account_id=acct.id)}}">{{acct.name}}</a></li>
-    {% endfor %}
-  </ul>
+  <div class="card  mb-3" >
+    <div class="card-header">
+      <a href="{{url_for('.link_accounts', item_id=item.id)}}">{{item.institution_name}}</a>
+    </div>
+    <ul class="list-group list-group-flush">
+      {% for acct in item.accounts %}
+      <li class="list-group-item">
+        <a href="{{url_for('.account_transactions', account_id=acct.id)}}">{{acct.name}}</a>
+        <a href="{{url_for('.account_report', account_id=acct.id)}}"
+           class="btn btn-sm btn-primary float-right">Report</a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
 {% endfor %}
-<p><a class="btn btn-md btn-primary" href="{{url_for('.all_account_report')}}">All Account Report</a></p>
+
+<p>
+  <a class="btn btn-md btn-primary" href="{{url_for('.all_account_transactions')}}">Transactions</a>
+  <a class="btn btn-md btn-secondary" href="{{url_for('.all_account_report')}}">Report</a>
+  <a class="btn btn-md btn-info" href="{{url_for('.subscription_list')}}">Subscriptions</a>
+  {% if next_unreviewed %}
+  <a class="btn btn-md btn-warning" href="{{url_for('.global_review')}}">Transaction Review</a>
+  {% endif %}
+</p>
 <form method="POST" action="{{url_for('.global_sync')}}" >
   {{ form.csrf_token }}
   <div class="form-group">
     <button class="btn btn-md btn-primary" type="submit">Start Sync</button>
+  <a class="btn btn-md btn-secondary" href="{{url_for('.link')}}">Link Institution</a>
   </div>
 </form>
-{% if next_unreviewed %}
-<p><a class="btn btn-md btn-secondary" href="{{url_for('.global_review')}}">Transaction Review</a></p>
-{% endif %}
-<p><a class="btn btn-md btn-secondary" href="{{url_for('.link')}}">Link new financial institution</a></p>
-<p><a class="btn btn-md btn-info" href="{{url_for('.subscription_list')}}">Subscriptions</a></p>
-
 <p>
   Privacy mode is {% if session.get("privacy") %}enabled{% else %}disabled{% endif %}.
   <a href="{{url_for('.privacy_toggle')}}">Toggle it.</a>
