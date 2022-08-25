@@ -55,6 +55,6 @@ class SafeNumeric(types.TypeDecorator):
         if value is None:
             return None
         if isinstance(dialect, SQLiteDialect):
-            return Decimal(value) / (10 ** self._scale)
+            return Decimal(value) / (10**self._scale)
         else:
             return Decimal(value)
