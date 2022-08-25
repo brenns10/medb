@@ -2,21 +2,29 @@
 """
 Celery tasks for speedtest
 """
+import functools
 import ipaddress
 import json
 import logging
 import subprocess
+from datetime import timedelta
 
 import requests
 
 from .models import IpCheckResult
+from .models import PingResult
 from .models import SpeedTestResult
+from .pinger import Pinger
 from medb.extensions import celery
 from medb.extensions import db
+from medb.model_util import utcnow
 
 
 IP6CHECK = "https://ip6only.me/api/"
 IP4CHECK = "https://ip4only.me/api/"
+
+PING_HOST = "1.1.1.1"
+PING_RETENTION_DAYS = 60
 
 
 @celery.task
@@ -74,4 +82,26 @@ def ipcheck():
         ipv6_addr.compressed,
     )
     db.session.add(row)
+    db.session.commit()
+
+
+@functools.lru_cache(maxsize=1)
+def get_pinger():
+    return Pinger(PING_HOST)
+
+
+@celery.task
+def ping():
+    p = get_pinger()
+    result = p.ping()
+    row = PingResult(ping_ms=result.time_ms)
+    db.session.add(row)
+    db.session.commit()
+    logging.debug(f"Ping - result {result.time_ms}")
+
+
+@celery.task
+def cleanup_ping_history():
+    boundary = utcnow() - timedelta(days=PING_RETENTION_DAYS)
+    PingResult.query.where(PingResult.c.time <= boundary).delete()
     db.session.commit()

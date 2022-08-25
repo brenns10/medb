@@ -2,8 +2,10 @@
 """The app module, containing the app factory function."""
 import logging
 import sys
+from datetime import timedelta
 
 from celery.schedules import crontab
+from celery.schedules import schedule
 from flask import Flask
 from flask import render_template
 
@@ -108,6 +110,16 @@ def register_periodic_tasks():
         "regular_iptest": {
             "task": "medb.speedtest.tasks.ipcheck",
             "schedule": crontab(minute=7),
+            "args": (),
+        },
+        "regular_ping": {
+            "task": "medb.speedtest.tasks.ping",
+            "schedule": schedule(run_every=timedelta(seconds=2), relative=True),
+            "args": (),
+        },
+        "cleanup_pings": {
+            "task": "medb.speedtest.tasks.cleanup_ping_history",
+            "schedule": crontab(hour=9, minute=0),
             "args": (),
         },
     }

@@ -34,3 +34,13 @@ class IpCheckResult(Model):
     time = db.Column(TZDateTime(), nullable=False, default=utcnow)
     ipv4 = db.Column(String(15), nullable=False)
     ipv6 = db.Column(String(39), nullable=True)
+
+
+class PingResult(Model):
+    __tablename__ = "ping_result"
+
+    id = db.Column(Integer, primary_key=True)
+    time = db.Column(TZDateTime(), nullable=False, default=utcnow)
+    ping_ms = db.Column(
+        Numeric(precision=7, scale=3, asdecimal=False), nullable=True
+    )
