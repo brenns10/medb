@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """Views for speed testing"""
 import datetime
+from dataclasses import dataclass
+from datetime import timedelta
 
 import mpld3
 import pandas as pd
@@ -9,8 +11,10 @@ from flask import Markup
 from flask import render_template
 from flask_login import login_required
 
+from .models import PingResult
 from .models import SpeedTestResult
 from medb.extensions import db
+from medb.model_util import utcnow
 
 
 blueprint = Blueprint(
@@ -21,10 +25,133 @@ blueprint = Blueprint(
 )
 
 
+@dataclass
+class SpeedtestSummary:
+
+    recent: SpeedTestResult
+
+    avg_download_1day: float
+    avg_upload_1day: float
+    avg_ping_1day: float
+
+    avg_download_7day: float
+    avg_upload_7day: float
+    avg_ping_7day: float
+
+    avg_download_30day: float
+    avg_upload_30day: float
+    avg_ping_30day: float
+
+
+def speedtest_stats() -> SpeedtestSummary:
+    most_recent = (
+        SpeedTestResult.query.order_by(SpeedTestResult.time.desc())
+        .limit(1)
+        .one()
+    )
+
+    kwargs = {"recent": most_recent}
+
+    def agg_days(days):
+        res = (
+            db.session.query(
+                db.func.avg(SpeedTestResult.download_bps).label("avg_download"),
+                db.func.avg(SpeedTestResult.upload_bps).label("avg_upload"),
+                db.func.avg(SpeedTestResult.ping_ms).label("avg_ping"),
+            )
+            .filter(SpeedTestResult.time >= utcnow() - timedelta(days=days))
+            .one()
+        )
+        kwargs[f"avg_download_{days}day"] = res.avg_download
+        kwargs[f"avg_upload_{days}day"] = res.avg_upload
+        kwargs[f"avg_ping_{days}day"] = res.avg_ping
+
+    agg_days(1)
+    agg_days(7)
+    agg_days(30)
+
+    return SpeedtestSummary(**kwargs)
+
+
+@dataclass
+class PingSummary:
+
+    recent: PingResult
+
+    avg_v4_1day: float
+    lost_v4_1day: int
+    avg_v6_1day: float
+    lost_v6_1day: int
+    count_1day: int
+
+    avg_v4_7day: float
+    lost_v4_7day: int
+    avg_v6_7day: float
+    lost_v6_7day: int
+    count_7day: int
+
+    avg_v4_30day: float
+    lost_v4_30day: int
+    avg_v6_30day: float
+    lost_v6_30day: int
+    count_30day: int
+
+
+def ping_results():
+    recent = PingResult.query.order_by(PingResult.time.desc()).limit(1).one()
+    kwargs = {"recent": recent}
+
+    def agg_days(days):
+        start = utcnow()
+        since = start - timedelta(days)
+        res = (
+            db.session.query(
+                db.func.avg(PingResult.ping_ms).label("avg_ping_v4"),
+                db.func.avg(PingResult.v6_ping_ms).label("avg_ping_v6"),
+                db.func.count("*").label("num_pings"),
+            )
+            .filter(
+                PingResult.time >= since,
+                PingResult.time < start,
+            )
+            .one()
+        )
+        kwargs[f"avg_v4_{days}day"] = res.avg_ping_v4
+        kwargs[f"avg_v6_{days}day"] = res.avg_ping_v6
+        kwargs[f"count_{days}day"] = res.num_pings
+        res = (
+            db.session.query(db.func.count("*").label("num"))
+            .filter(
+                PingResult.time >= since,
+                PingResult.time < start,
+                PingResult.ping_ms == None,  # noqa
+            )
+            .one()
+        )
+        kwargs[f"lost_v4_{days}day"] = res.num
+        res = (
+            db.session.query(db.func.count("*").label("num"))
+            .filter(
+                PingResult.time >= since,
+                PingResult.time < start,
+                PingResult.v6_ping_ms == None,  # noqa
+            )
+            .one()
+        )
+        kwargs[f"lost_v6_{days}day"] = res.num
+
+    agg_days(1)
+    agg_days(7)
+    agg_days(30)
+    return PingSummary(**kwargs)
+
+
 @blueprint.route("/results/", methods=["GET"])
 @login_required
 def speedtest_results():
-    df = pd.read_sql(SpeedTestResult.query.statement, db.session.bind)
+    oldest = utcnow() - datetime.timedelta(days=60)
+    query = SpeedTestResult.query.filter(SpeedTestResult.time >= oldest)
+    df = pd.read_sql(query.statement, db.session.bind)
     local_tz = datetime.datetime.now().astimezone().tzinfo
     # This bizarre line is due to the following:
     # 1. We store times in the database as UTC, but want to present them in the
@@ -36,8 +163,13 @@ def speedtest_results():
     df = df.set_index("time")
     df["Upload (Mbps)"] = df["upload_bps"] / 1000000.0
     df["Download (Mbps)"] = df["download_bps"] / 1000000.0
-    ax = df[["Upload (Mbps)", "Download (Mbps)"]].plot()
+    ax = df[["Upload (Mbps)", "Download (Mbps)"]].plot(style="o")
     ax.set_xlabel("Test Date and Time")
     ax.set_ylabel("Speed")
     html = Markup(mpld3.fig_to_html(ax.figure))
-    return render_template("speedtest/result.html", result=html)
+    return render_template(
+        "speedtest/result.html",
+        result=html,
+        st=speedtest_stats(),
+        ping=ping_results(),
+    )

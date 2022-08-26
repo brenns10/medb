@@ -1,6 +1,171 @@
 {% extends "layout.html" %}
 {% block title %}Speedtest{% endblock %}
 {% block content %}
-<h1>Speedtest Results</h1>
-{{result}}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <h4 class="card-title">Speedtest.net Results</h4>
+      </div>
+      <div class="card-body">
+        <p class="card-text">
+          Speedtest.net has many servers which means the results here are quite
+          variable, but maybe more generalizable.
+        </p>
+        <h5 class="card-title">Most Recent Result</h5>
+        <table class="table table-striped">
+          <tbody>
+            <tr>
+              <th scope="row">Download</th>
+              <td>{{ "%.1f" | format(st.recent.download_bps / 1000000) }} Mbps</td>
+            </tr>
+            <tr>
+              <th scope="row">Upload</th>
+              <td>{{ "%.1f" | format(st.recent.upload_bps / 1000000) }} Mbps</td>
+            </tr>
+            <tr>
+              <th scope="row">Ping</th>
+              <td>{{ "%.1f" | format(st.recent.ping_ms) }}ms</td>
+            </tr>
+            <tr>
+              <th scope="row">Test Time</th>
+              <td>{{ st.recent.time.astimezone().strftime("%T, %Y-%m-%d") }}</td>
+            </tr>
+            <tr>
+              <th scope="row">Server</th>
+              <td>{{ st.recent.server_name }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <h5 class="card-title">Averages</h5>
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th></th>
+              <th>1 day</th>
+              <th>7 days</th>
+              <th>30 days</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Average Download</th>
+              <td>{{ "%.1f" | format(st.avg_download_1day / 1000000) }} Mbps</td>
+              <td>{{ "%.1f" | format(st.avg_download_7day / 1000000) }} Mbps</td>
+              <td>{{ "%.1f" | format(st.avg_download_30day / 1000000) }} Mbps</td>
+            </tr>
+            <tr>
+              <th scope="row">Average Upload</th>
+              <td>{{ "%.1f" | format(st.avg_upload_1day / 1000000) }} Mbps</td>
+              <td>{{ "%.1f" | format(st.avg_upload_7day / 1000000) }} Mbps</td>
+              <td>{{ "%.1f" | format(st.avg_upload_30day / 1000000) }} Mbps</td>
+            </tr>
+            <tr>
+              <th scope="row">Average Ping</th>
+              <td>{{ "%.1f" | format(st.avg_ping_1day) }}ms</td>
+              <td>{{ "%.1f" | format(st.avg_ping_7day) }}ms</td>
+              <td>{{ "%.1f" | format(st.avg_ping_30day) }}ms</td>
+            </tr>
+          </tbody>
+        </table>
+        <h5 class="card-title">60-Day Plot</h5>
+        {{result}}
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row justify-content-center" style="margin-top: 3em">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title">Cloudflare Ping Results</h5>
+      </div>
+      <div class="card-body">
+        <p class="card-text">
+          Pinging Cloudflare's DNS, both IP and IPv6.
+        </p>
+        <h5 class="card-title">Most Recent Result</h5>
+        <table class="table table-striped">
+          <tbody>
+            <tr>
+              <th scope="row">IPv4</th>
+              {% if ping.recent.ping_ms %}
+                <td>{{ "%.1f" | format(ping.recent.ping_ms) }}ms</td>
+              {% else %}
+                <td>ERROR</td>
+              {% endif %}
+            </tr>
+            <tr>
+              <th scope="row">IPv6</th>
+              {% if ping.recent.v6_ping_ms %}
+                <td>{{ "%.1f" | format(ping.recent.v6_ping_ms) }}ms</td>
+              {% else %}
+                <td>ERROR</td>
+              {% endif %}
+            </tr>
+            <tr>
+              <th scope="row">Test Time</th>
+              <td>{{ ping.recent.time.astimezone().strftime("%T, %Y-%m-%d") }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <h5 class="card-title">Averages</h5>
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th></th>
+              <th>1 day</th>
+              <th>7 days</th>
+              <th>30 days</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">IPv4</th>
+              <td>{{ "%.1f" | format(ping.avg_v4_1day) }} ms</td>
+              <td>{{ "%.1f" | format(ping.avg_v4_7day) }} ms</td>
+              <td>{{ "%.1f" | format(ping.avg_v4_30day) }} ms</td>
+            </tr>
+            <tr>
+              <th scope="row">IPv4 Loss</th>
+              <td>
+                {{ "%.3f%%" | format(100 * ping.lost_v4_1day / ping.count_1day) }}
+                ({{ ping.lost_v4_1day }} / {{ ping.count_1day }})
+              </td>
+              <td>
+                {{ "%.3f%%" | format(100 * ping.lost_v4_7day / ping.count_7day) }}
+                ({{ ping.lost_v4_7day }} / {{ ping.count_7day }})
+              </td>
+              <td>
+                {{ "%.3f%%" | format(100 * ping.lost_v4_30day / ping.count_30day) }}
+                ({{ ping.lost_v4_30day }} / {{ ping.count_30day }})
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">IPv6</th>
+              <td>{{ "%.1f" | format(ping.avg_v6_1day) }} ms</td>
+              <td>{{ "%.1f" | format(ping.avg_v6_7day) }} ms</td>
+              <td>{{ "%.1f" | format(ping.avg_v6_30day) }} ms</td>
+            </tr>
+            <tr>
+              <th scope="row">IPv6 Loss</th>
+              <td>
+                {{ "%.3f%%" | format(100 * ping.lost_v6_1day / ping.count_1day) }}
+                ({{ ping.lost_v6_1day }} / {{ ping.count_1day }})
+              </td>
+              <td>
+                {{ "%.3f%%" | format(100 * ping.lost_v6_7day / ping.count_7day) }}
+                ({{ ping.lost_v6_7day }} / {{ ping.count_7day }})
+              </td>
+              <td>
+                {{ "%.3f%%" | format(100 * ping.lost_v6_30day / ping.count_30day) }}
+                ({{ ping.lost_v6_30day }} / {{ ping.count_30day }})
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
