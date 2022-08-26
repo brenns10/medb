@@ -78,6 +78,56 @@
   <div class="col-md-8">
     <div class="card">
       <div class="card-header">
+        <h4 class="card-title">Fast.com Results</h4>
+      </div>
+      <div class="card-body">
+        <p class="card-text">
+          Fast.com is by Netflix. The results may be faster and more consistent,
+          but they may be less generalizable to other websites, given that ISPs
+          may prioritize peering for Netflix.
+        </p>
+        <h5 class="card-title">Most Recent Result</h5>
+        <table class="table table-striped">
+          <tbody>
+            <tr>
+              <th scope="row">Download</th>
+              <td>{{ "%.1f" | format(fast.recent.download_mbps ) }} Mbps</td>
+            </tr>
+            <tr>
+              <th scope="row">Test Time</th>
+              <td>{{ fast.recent.time.astimezone().strftime("%T, %Y-%m-%d") }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <h5 class="card-title">Averages</h5>
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th></th>
+              <th>1 day</th>
+              <th>7 days</th>
+              <th>30 days</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Average Download</th>
+              <td>{{ "%.1f" | format(fast.avg_download_1day) }} Mbps</td>
+              <td>{{ "%.1f" | format(fast.avg_download_7day) }} Mbps</td>
+              <td>{{ "%.1f" | format(fast.avg_download_30day) }} Mbps</td>
+            </tr>
+          </tbody>
+        </table>
+        <h5 class="card-title">60-Day Plot</h5>
+        <a href="{{ url_for(".plot_fast_png") }}"><img src="{{ url_for(".plot_fast_png") }}" class="w-100" /></a>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row justify-content-center" style="margin-top: 3em">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
         <h5 class="card-title">Cloudflare Ping Results</h5>
       </div>
       <div class="card-body">

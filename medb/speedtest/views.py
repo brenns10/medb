@@ -13,6 +13,7 @@ from flask import make_response
 from flask import render_template
 from flask_login import login_required
 
+from .models import FastResult
 from .models import PingResult
 from .models import SpeedTestResult
 from medb.extensions import db
@@ -76,6 +77,39 @@ def speedtest_stats() -> SpeedtestSummary:
     agg_days(30)
 
     return SpeedtestSummary(**kwargs)
+
+
+@dataclass
+class FastSummary:
+
+    recent: FastResult
+    avg_download_1day: float
+    avg_download_7day: float
+    avg_download_30day: float
+
+
+def fast_stats() -> FastSummary:
+    most_recent = (
+        FastResult.query.order_by(FastResult.time.desc()).limit(1).one()
+    )
+
+    kwargs = {"recent": most_recent}
+
+    def agg_days(days):
+        res = (
+            db.session.query(
+                db.func.avg(FastResult.download_mbps).label("avg_download"),
+            )
+            .filter(FastResult.time >= utcnow() - timedelta(days=days))
+            .one()
+        )
+        kwargs[f"avg_download_{days}day"] = res.avg_download
+
+    agg_days(1)
+    agg_days(7)
+    agg_days(30)
+
+    return FastSummary(**kwargs)
 
 
 @dataclass
@@ -179,6 +213,33 @@ def plot_speedtest_png():
     return resp
 
 
+@blueprint.route("/plot/fast.png", methods=["GET"])
+@login_required
+def plot_fast_png():
+    oldest = utcnow() - datetime.timedelta(days=60)
+    query = FastResult.query.filter(FastResult.time >= oldest)
+    df = pd.read_sql(query.statement, db.session.bind)
+    local_tz = datetime.datetime.now().astimezone().tzinfo
+    # This bizarre line is due to the following:
+    # 1. We store times in the database as UTC, but want to present them in the
+    #    local timezone.
+    # 2. Pandas somehow doesn't support timezone aware datetimes
+    # So, we convert from UTC to the local time, and then strip the timezone off
+    # of it. This results in the timezone "looking" correct in the plot.
+    df["time"] = df["time"].dt.tz_convert(local_tz).dt.tz_localize(None)
+    df = df.set_index("time")
+    df = df.rename(columns={"download_mbps": "Download (Mbps)"})
+    ax = df[["Download (Mbps)"]].plot(style="o")
+    ax.set_xlabel("Test Date and Time")
+    ax.set_ylabel("Speed")
+
+    bio = io.BytesIO()
+    ax.figure.savefig(bio, format="png")
+    resp = make_response(bio.getvalue())
+    resp.headers.set("Content-Type", "image/png")
+    return resp
+
+
 @blueprint.route("/results/", methods=["GET"])
 @login_required
 def speedtest_results():
@@ -186,4 +247,5 @@ def speedtest_results():
         "speedtest/result.html",
         st=speedtest_stats(),
         ping=ping_results(),
+        fast=fast_stats(),
     )
