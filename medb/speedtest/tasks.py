@@ -37,11 +37,15 @@ def perform_speedtest():
             ["speedtest-cli", "--json"],
             check=True,
             capture_output=True,
+            timeout=120,
         )
     except subprocess.CalledProcessError as e:
         logging.error('stdout="%s"', e.stdout.decode("utf-8"))
         logging.error('stderr="%s"', e.stderr.decode("utf-8"))
         raise
+    except subprocess.TimeoutExpired:
+        logging.error("Speed test timed out")
+        return
     test_result = json.loads(res.stdout.decode("utf-8"))
     server_name = "{} ({})".format(
         test_result["server"]["name"],
