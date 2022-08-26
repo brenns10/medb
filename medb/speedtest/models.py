@@ -27,6 +27,16 @@ class SpeedTestResult(Model):
     server_id = db.Column(String, nullable=False)
 
 
+class FastResult(Model):
+    __tablename__ = "fast_result"
+
+    id = db.Column(Integer, primary_key=True)
+    time = db.Column(TZDateTime(), nullable=False, default=utcnow)
+    download_mbps = db.Column(
+        Numeric(precision=10, scale=3, asdecimal=False), nullable=False
+    )
+
+
 class IpCheckResult(Model):
     __tablename__ = "ipcheck_result"
 

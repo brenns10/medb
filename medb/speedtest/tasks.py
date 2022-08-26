@@ -8,9 +8,11 @@ import json
 import logging
 import subprocess
 from datetime import timedelta
+from pathlib import Path
 
 import requests
 
+from .models import FastResult
 from .models import IpCheckResult
 from .models import PingResult
 from .models import SpeedTestResult
@@ -29,8 +31,7 @@ PING_V6_HOST = "2606:4700:4700::64"
 PING_RETENTION_DAYS = 60
 
 
-@celery.task
-def perform_speedtest():
+def perform_speedtest_net():
     logging.info("Started speedtest")
     try:
         res = subprocess.run(
@@ -65,6 +66,43 @@ def perform_speedtest():
     )
     db.session.add(row)
     db.session.commit()
+
+
+def perform_fast_com():
+    try:
+        res = subprocess.run(
+            [Path.home() / "go/bin/fast-cli", "-s"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+    except subprocess.CalledProcessError as e:
+        logging.error('stdout="%s"', e.stdout.decode("utf-8"))
+        logging.error('stderr="%s"', e.stderr.decode("utf-8"))
+        raise
+    except subprocess.TimeoutExpired:
+        logging.error("Fast.com test timed out")
+        return
+
+    vals = res.stdout.strip().split()
+    if vals[1][0].lower() == "m":
+        val_mbps = float(vals[0])
+    elif vals[1][0].lower() == "g":
+        val_mbps = float(vals[0]) * 1000
+    elif vals[1][0].lower() == "k":
+        val_mbps = float(vals[0]) / 1000
+    else:
+        logging.error(f"Unsupported unit: '{res.stdout.strip()}'")
+    row = FastResult(download_mbps=val_mbps)
+    db.session.add(row)
+    db.session.commit()
+
+
+@celery.task
+def perform_speedtest():
+    perform_speedtest_net()
+    perform_fast_com()
 
 
 @celery.task
