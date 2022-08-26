@@ -119,5 +119,5 @@ def ping():
 @celery.task
 def cleanup_ping_history():
     boundary = utcnow() - timedelta(days=PING_RETENTION_DAYS)
-    PingResult.query.where(PingResult.c.time <= boundary).delete()
+    PingResult.query.where(PingResult.time <= boundary).delete()
     db.session.commit()
