@@ -9,7 +9,6 @@ flask-migrate
 flask-sqlalchemy
 flask-wtf
 matplotlib
-mpld3
 pandas
 plaid-python<8  # switches to OpenAPI binding
 sqlalchemy

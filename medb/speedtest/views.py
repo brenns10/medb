@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 """Views for speed testing"""
 import datetime
+import io
 from dataclasses import dataclass
 from datetime import timedelta
 
-import mpld3
+import matplotlib.pyplot
+import matplotlib.style
 import pandas as pd
 from flask import Blueprint
-from flask import Markup
+from flask import make_response
 from flask import render_template
 from flask_login import login_required
 
@@ -16,6 +18,9 @@ from .models import SpeedTestResult
 from medb.extensions import db
 from medb.model_util import utcnow
 
+matplotlib.use("agg")
+matplotlib.style.use("ggplot")
+matplotlib.pyplot.rcParams["figure.figsize"] = (8, 6)
 
 blueprint = Blueprint(
     "speedtest",
@@ -146,9 +151,9 @@ def ping_results():
     return PingSummary(**kwargs)
 
 
-@blueprint.route("/results/", methods=["GET"])
+@blueprint.route("/plot/speedtest.png", methods=["GET"])
 @login_required
-def speedtest_results():
+def plot_speedtest_png():
     oldest = utcnow() - datetime.timedelta(days=60)
     query = SpeedTestResult.query.filter(SpeedTestResult.time >= oldest)
     df = pd.read_sql(query.statement, db.session.bind)
@@ -166,10 +171,19 @@ def speedtest_results():
     ax = df[["Upload (Mbps)", "Download (Mbps)"]].plot(style="o")
     ax.set_xlabel("Test Date and Time")
     ax.set_ylabel("Speed")
-    html = Markup(mpld3.fig_to_html(ax.figure))
+
+    bio = io.BytesIO()
+    ax.figure.savefig(bio, format="png")
+    resp = make_response(bio.getvalue())
+    resp.headers.set("Content-Type", "image/png")
+    return resp
+
+
+@blueprint.route("/results/", methods=["GET"])
+@login_required
+def speedtest_results():
     return render_template(
         "speedtest/result.html",
-        result=html,
         st=speedtest_stats(),
         ping=ping_results(),
     )
