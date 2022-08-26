@@ -23,7 +23,9 @@ from medb.model_util import utcnow
 IP6CHECK = "https://ip6only.me/api/"
 IP4CHECK = "https://ip4only.me/api/"
 
+# Both are cloudflare DNS servers, I don't feel bad about the traffic.
 PING_HOST = "1.1.1.1"
+PING_V6_HOST = "2606:4700:4700::64"
 PING_RETENTION_DAYS = 60
 
 
@@ -64,22 +66,32 @@ def perform_speedtest():
 @celery.task
 def ipcheck():
     logging.info("Starting ip check")
-    resp4 = requests.get(IP4CHECK)
-    kind, addr, rest = resp4.text.strip().split(",", 2)
-    assert kind == "IPv4"
-    ipv4_addr = ipaddress.IPv4Address(addr)
-    resp6 = requests.get(IP6CHECK)
-    kind, addr, rest = resp6.text.strip().split(",", 2)
-    assert kind == "IPv6"
-    ipv6_addr = ipaddress.IPv6Address(addr)
+    try:
+        resp4 = requests.get(IP4CHECK, timeout=10)
+        kind, addr, rest = resp4.text.strip().split(",", 2)
+        assert kind == "IPv4"
+        ipv4_addr = ipaddress.IPv4Address(addr).exploded
+    except TimeoutError:
+        logging.warn("IPv4 check timed out!")
+        ipv4_addr = None
+
+    try:
+        resp6 = requests.get(IP6CHECK, timeout=10)
+        kind, addr, rest = resp6.text.strip().split(",", 2)
+        assert kind == "IPv6"
+        ipv6_addr = ipaddress.IPv6Address(addr).exploded
+    except TimeoutError:
+        logging.warn("IPv6 check timed out!")
+        ipv6_addr = None
+
     row = IpCheckResult(
-        ipv4=ipv4_addr.exploded,
-        ipv6=ipv6_addr.exploded,
+        ipv4=ipv4_addr,
+        ipv6=ipv6_addr,
     )
     logging.info(
         "IP Check: v4=%s, v6=%s",
-        ipv4_addr.compressed,
-        ipv6_addr.compressed,
+        ipv4_addr,
+        ipv6_addr,
     )
     db.session.add(row)
     db.session.commit()
@@ -90,14 +102,18 @@ def get_pinger():
     return Pinger(PING_HOST)
 
 
+@functools.lru_cache(maxsize=1)
+def get_v6_pinger():
+    return Pinger(PING_V6_HOST)
+
+
 @celery.task
 def ping():
-    p = get_pinger()
-    result = p.ping()
-    row = PingResult(ping_ms=result.time_ms)
+    result = get_pinger().ping()
+    result_v6 = get_v6_pinger().ping()
+    row = PingResult(ping_ms=result.time_ms, v6_ping_ms=result_v6.time_ms)
     db.session.add(row)
     db.session.commit()
-    logging.debug(f"Ping - result {result.time_ms}")
 
 
 @celery.task
