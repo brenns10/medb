@@ -7,6 +7,7 @@ import ipaddress
 import json
 import logging
 import subprocess
+import time
 from datetime import timedelta
 from pathlib import Path
 
@@ -32,21 +33,36 @@ PING_RETENTION_DAYS = 60
 
 
 def perform_speedtest_net():
-    logging.info("Started speedtest")
-    try:
-        res = subprocess.run(
-            ["speedtest-cli", "--json"],
-            check=True,
-            capture_output=True,
-            timeout=120,
-        )
-    except subprocess.CalledProcessError as e:
-        logging.error('stdout="%s"', e.stdout.decode("utf-8"))
-        logging.error('stderr="%s"', e.stderr.decode("utf-8"))
-        raise
-    except subprocess.TimeoutExpired:
-        logging.error("Speed test timed out")
-        return
+    logging.info("Started speedtest.net")
+    tries_allowed = 4
+    while True:
+        tries_allowed -= 1
+        try:
+            res = subprocess.run(
+                ["speedtest-cli", "--json"],
+                check=True,
+                capture_output=True,
+                timeout=120,
+            )
+            break
+        except subprocess.CalledProcessError as e:
+            logging.error('stdout="%s"', e.stdout.decode("utf-8"))
+            logging.error('stderr="%s"', e.stderr.decode("utf-8"))
+            if tries_allowed:
+                logging.error("Trying again!")
+            else:
+                logging.error("Bailing.")
+                return
+        except subprocess.TimeoutExpired:
+            logging.error("Speed test timed out")
+            if tries_allowed:
+                logging.error("Trying again!")
+            else:
+                logging.error("Bailing.")
+                return
+        # If there was an error, leave some time for the dust to settle before
+        # trying again.
+        time.sleep(1)
     test_result = json.loads(res.stdout.decode("utf-8"))
     server_name = "{} ({})".format(
         test_result["server"]["name"],
@@ -66,24 +82,41 @@ def perform_speedtest_net():
     )
     db.session.add(row)
     db.session.commit()
+    logging.info("Saved speedtest.net result")
 
 
 def perform_fast_com():
-    try:
-        res = subprocess.run(
-            [Path.home() / "go/bin/fast-cli", "-s"],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
-    except subprocess.CalledProcessError as e:
-        logging.error('stdout="%s"', e.stdout.decode("utf-8"))
-        logging.error('stderr="%s"', e.stderr.decode("utf-8"))
-        raise
-    except subprocess.TimeoutExpired:
-        logging.error("Fast.com test timed out")
-        return
+    logging.info("Started fast.com")
+    tries_allowed = 4
+    while True:
+        tries_allowed -= 1
+        try:
+            res = subprocess.run(
+                [Path.home() / "go/bin/fast-cli", "-s"],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            break
+        except subprocess.CalledProcessError as e:
+            logging.error('stdout="%s"', e.stdout)
+            logging.error('stderr="%s"', e.stderr)
+            if tries_allowed:
+                logging.error("Trying again!")
+            else:
+                logging.error("Bailing.")
+                return
+        except subprocess.TimeoutExpired:
+            logging.error("Fast.com test timed out")
+            if tries_allowed:
+                logging.error("Trying again!")
+            else:
+                logging.error("Bailing.")
+                return
+        # If there was an error, leave some time for the dust to settle before
+        # trying again.
+        time.sleep(1)
 
     vals = res.stdout.strip().split()
     if vals[1][0].lower() == "m":
@@ -97,6 +130,7 @@ def perform_fast_com():
     row = FastResult(download_mbps=val_mbps)
     db.session.add(row)
     db.session.commit()
+    logging.info("Saved fast.com result")
 
 
 @celery.task
