@@ -185,12 +185,15 @@ def ping_results():
     return PingSummary(**kwargs)
 
 
-@blueprint.route("/plot/speedtest.png", methods=["GET"])
-@login_required
-def plot_speedtest_png():
-    oldest = utcnow() - datetime.timedelta(days=60)
-    query = SpeedTestResult.query.filter(SpeedTestResult.time >= oldest)
-    df = pd.read_sql(query.statement, db.session.bind)
+def figure_response(figure):
+    bio = io.BytesIO()
+    figure.savefig(bio, format="png")
+    resp = make_response(bio.getvalue())
+    resp.headers.set("Content-Type", "image/png")
+    return resp
+
+
+def fix_tz(df, col="time"):
     local_tz = datetime.datetime.now().astimezone().tzinfo
     # This bizarre line is due to the following:
     # 1. We store times in the database as UTC, but want to present them in the
@@ -198,19 +201,23 @@ def plot_speedtest_png():
     # 2. Pandas somehow doesn't support timezone aware datetimes
     # So, we convert from UTC to the local time, and then strip the timezone off
     # of it. This results in the timezone "looking" correct in the plot.
-    df["time"] = df["time"].dt.tz_convert(local_tz).dt.tz_localize(None)
+    df[col] = df[col].dt.tz_convert(local_tz).dt.tz_localize(None)
+
+
+@blueprint.route("/plot/speedtest.png", methods=["GET"])
+@login_required
+def plot_speedtest_png():
+    oldest = utcnow() - datetime.timedelta(days=60)
+    query = SpeedTestResult.query.filter(SpeedTestResult.time >= oldest)
+    df = pd.read_sql(query.statement, db.session.bind)
+    fix_tz(df)
     df = df.set_index("time")
     df["Upload (Mbps)"] = df["upload_bps"] / 1000000.0
     df["Download (Mbps)"] = df["download_bps"] / 1000000.0
     ax = df[["Upload (Mbps)", "Download (Mbps)"]].plot(style="o")
     ax.set_xlabel("Test Date and Time")
     ax.set_ylabel("Speed")
-
-    bio = io.BytesIO()
-    ax.figure.savefig(bio, format="png")
-    resp = make_response(bio.getvalue())
-    resp.headers.set("Content-Type", "image/png")
-    return resp
+    return figure_response(ax.figure)
 
 
 @blueprint.route("/plot/fast.png", methods=["GET"])
@@ -219,25 +226,39 @@ def plot_fast_png():
     oldest = utcnow() - datetime.timedelta(days=60)
     query = FastResult.query.filter(FastResult.time >= oldest)
     df = pd.read_sql(query.statement, db.session.bind)
-    local_tz = datetime.datetime.now().astimezone().tzinfo
-    # This bizarre line is due to the following:
-    # 1. We store times in the database as UTC, but want to present them in the
-    #    local timezone.
-    # 2. Pandas somehow doesn't support timezone aware datetimes
-    # So, we convert from UTC to the local time, and then strip the timezone off
-    # of it. This results in the timezone "looking" correct in the plot.
-    df["time"] = df["time"].dt.tz_convert(local_tz).dt.tz_localize(None)
+    fix_tz(df)
     df = df.set_index("time")
     df = df.rename(columns={"download_mbps": "Download (Mbps)"})
     ax = df[["Download (Mbps)"]].plot(style="o")
     ax.set_xlabel("Test Date and Time")
     ax.set_ylabel("Speed")
+    return figure_response(ax.figure)
 
-    bio = io.BytesIO()
-    ax.figure.savefig(bio, format="png")
-    resp = make_response(bio.getvalue())
-    resp.headers.set("Content-Type", "image/png")
-    return resp
+
+def dropped_pings_plot(field, sample="1H"):
+    oldest = utcnow() - datetime.timedelta(days=2)
+    query = PingResult.query.filter(PingResult.time >= oldest)
+    df = pd.read_sql(query.statement, db.session.bind)
+    fix_tz(df)
+    df = df.set_index("time")
+    fig, ax = matplotlib.pyplot.subplots()
+    series = df[field]
+    lost = series.isna().resample(sample).sum()
+    not_lost = series.resample("1H").count()
+    (100 * lost / (lost + not_lost)).plot(ax=ax)
+    return figure_response(ax.figure)
+
+
+@blueprint.route("/plot/ping4.png", methods=["GET"])
+@login_required
+def plot_ping4():
+    return dropped_pings_plot("ping_ms")
+
+
+@blueprint.route("/plot/ping6.png", methods=["GET"])
+@login_required
+def plot_ping6():
+    return dropped_pings_plot("v6_ping_ms")
 
 
 @blueprint.route("/results/", methods=["GET"])
