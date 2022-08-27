@@ -17,4 +17,5 @@ venv:
 
 .PHONY: notebook
 notebook:
-	PYTHONPATH="$(shell pwd)" venv/bin/jupyter lab --notebook-dir=notebooks
+	PYTHONPATH="$(shell pwd)" venv/bin/jupyter lab \
+		   --notebook-dir=notebooks --config .jupyter_lab_config.py
