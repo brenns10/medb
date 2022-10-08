@@ -16,7 +16,18 @@ from typing import Dict
 from typing import List
 
 import plaid
-from plaid.errors import ItemError
+from plaid.api import plaid_api
+from plaid.models import AccountsGetRequest
+from plaid.models import CountryCode
+from plaid.models import InstitutionsGetByIdRequest
+from plaid.models import ItemGetRequest
+from plaid.models import ItemPublicTokenExchangeRequest
+from plaid.models import LinkTokenCreateRequest
+from plaid.models import LinkTokenCreateRequestUser
+from plaid.models import Products
+from plaid.models import SandboxItemResetLoginRequest
+from plaid.models import TransactionsGetRequest
+from plaid.models import TransactionsGetRequestOptions
 from sqlalchemy import and_
 from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
@@ -72,8 +83,8 @@ class PlaidTransaction:
     name: str
     merchant_name: t.Optional[str]
     location: t.Dict[str, t.Union[None, str, float]]
-    authorized_date: t.Optional[str]
-    date: str
+    authorized_date: t.Optional[datetime.date]
+    date: datetime.date
     category_id: str
     category: t.Optional[t.List[str]]
     unofficial_currency_code: t.Optional[str]
@@ -90,20 +101,16 @@ class PlaidTransaction:
             amount=Decimal(str(self.amount)),
             posted=not self.pending,
             name=self.name,
-            date=datetime.date.fromisoformat(self.date),
+            date=self.date,
             # We'll only copy this over for a newly-created transaction. For
             # updated transactions, the date field will only be copied, and thus
             # we'll preserve the original value
-            original_date=datetime.date.fromisoformat(self.date),
+            original_date=self.date,
             plaid_payment_channel=self.payment_channel,
             plaid_payment_meta=json.dumps(self.payment_meta),
             plaid_merchant_name=self.merchant_name,
             plaid_location=json.dumps(self.location),
-            plaid_authorized_date=(
-                None
-                if self.authorized_date is None
-                else datetime.date.fromisoformat(self.authorized_date)
-            ),
+            plaid_authorized_date=self.authorized_date,
             plaid_category_id=self.category_id,
         )
 
@@ -179,75 +186,94 @@ class UpdateLink(Exception):
 
 
 @lru_cache(maxsize=1)
-def plaid_client() -> plaid.Client:
-    return plaid.Client(
-        client_id=PLAID_CLIENT_ID,
-        secret=PLAID_SECRET,
-        environment=PLAID_ENV,
-        api_version="2018-05-22",
+def plaid_client() -> plaid_api.PlaidApi:
+    if PLAID_ENV == "sandbox":
+        plaid_env = plaid.Environment.Sandbox
+    elif PLAID_ENV == "development":
+        plaid_env = plaid.Environment.Development
+    else:
+        assert False, "Plaid environment invalid"
+    configuration = plaid.Configuration(
+        host=plaid_env,
+        api_key={
+            "clientId": PLAID_CLIENT_ID,
+            "secret": PLAID_SECRET,
+            "plaidVersion": "2020-09-14",
+        },
     )
+    api_client = plaid.ApiClient(configuration)
+    client = plaid_api.PlaidApi(api_client)
+    return client
 
 
 def get_item(access_token: str) -> t.Any:
     client = plaid_client()
-    return client.Item.get(access_token)
+    request = ItemGetRequest(access_token=access_token)
+    return client.item_get(request)
 
 
 def get_accounts(access_token: str) -> t.Any:
     client = plaid_client()
-    return client.Accounts.get(access_token)
+    request = AccountsGetRequest(access_token=access_token)
+    return client.accounts_get(request)
 
 
 def get_institution(ins_id: str) -> t.Any:
     client = plaid_client()
-    return client.Institutions.get_by_id(ins_id, ["US"])
+    request = InstitutionsGetByIdRequest(
+        institution_id=ins_id,
+        country_codes=[CountryCode("US")],
+    )
+    return client.institutions_get_by_id(request)
 
 
 def plaid_new_item_link_token(user: User) -> str:
     client = plaid_client()
-    response = client.LinkToken.create(
-        {
-            "user": {
-                "client_user_id": str(User.id),
-            },
-            "products": ["transactions"],
-            "client_name": "MeDB Shiso",
-            "country_codes": ["US"],
-            "language": "en",
-        }
+    request = LinkTokenCreateRequest(
+        products=[Products("transactions")],
+        client_name="MeDB Shiso",
+        country_codes=[CountryCode("US")],
+        language="en",
+        user=LinkTokenCreateRequestUser(
+            client_user_id=str(User.id),
+        ),
     )
+    response = client.link_token_create(request)
     return response["link_token"]
 
 
 def plaid_update_item_link_token(item_summary: ItemSummary) -> str:
     client = plaid_client()
-    response = client.LinkToken.create(
-        {
-            "user": {
-                "client_user_id": str(item_summary.user_id),
-            },
-            "client_name": "MeDB Shiso",
-            "country_codes": ["US"],
-            "language": "en",
-            "access_token": item_summary.access_token,
-        }
+    request = LinkTokenCreateRequest(
+        client_name="MeDB Shiso",
+        country_codes=[CountryCode("US")],
+        language="en",
+        user=LinkTokenCreateRequestUser(
+            client_user_id=str(item_summary.user_id),
+        ),
+        access_token=item_summary.access_token,
     )
+    response = client.link_token_create(request)
     return response["link_token"]
 
 
 def plaid_sandbox_reset_login(item_summary: ItemSummary):
     client = plaid_client()
-    client.Sandbox.item.reset_login(item_summary.access_token)
+    request = SandboxItemResetLoginRequest(
+        access_token=item_summary.access_token,
+    )
+    return client.sandbox_item_reset_login(request)
 
 
 def is_eligible_account(acct: t.Dict) -> bool:
-    return (acct["type"], acct["subtype"]) in SUPPORTED_TYPES
+    return (str(acct["type"]), str(acct["subtype"])) in SUPPORTED_TYPES
 
 
 def create_item(user: User, form: LinkItemForm) -> UserPlaidItem:
     client = plaid_client()
     public_token = form.public_token.data
-    exchange_response = client.Item.public_token.exchange(public_token)
+    request = ItemPublicTokenExchangeRequest(public_token=public_token)
+    exchange_response = client.item_public_token_exchange(request)
     plaid_item = get_item(exchange_response["access_token"])
     institution = get_institution(plaid_item["item"]["institution_id"])
     item = UserPlaidItem(
@@ -269,8 +295,10 @@ def get_item_summary(item_id: int) -> t.Optional[ItemSummary]:
 
     try:
         accounts = get_accounts(item.access_token)
-    except ItemError as e:
-        if e.code == "ITEM_LOGIN_REQUIRED":
+    except plaid.ApiException as e:
+        response = json.loads(e.body)
+        print(response)
+        if response["error_code"] == "ITEM_LOGIN_REQUIRED":
             raise UpdateLink(item_id)
         else:
             raise
@@ -304,7 +332,7 @@ def link_account(item_id: str, account: t.Dict):
         item_id=item_id,
         account_id=account["account_id"],
         name=account["name"],
-        kind=account["subtype"],
+        kind=str(account["subtype"]),
         sync_start=None,
     )
     db.session.add(acct)
@@ -337,18 +365,31 @@ def get_plaid_transactions(
     start = today - datetime.timedelta(days=days_ago)
     kwargs = dict(
         access_token=access_token,
-        start_date=start.isoformat(),
-        end_date=today.isoformat(),
+        start_date=start,
+        end_date=today,
+    )
+    opts = dict(
         account_ids=[account_id],
     )
-    response = client.Transactions.get(**kwargs)
+    request = TransactionsGetRequest(
+        options=TransactionsGetRequestOptions(**opts),
+        **kwargs,
+    )
+    response = client.transactions_get(request).to_dict()
 
     def yield_transactions():
         offset = len(response["transactions"])
         for txn in response["transactions"]:
             yield PlaidTransaction.create(txn)
         while offset < response["total_transactions"]:
-            next_response = client.Transactions.get(offset=offset, **kwargs)
+            request = TransactionsGetRequest(
+                options=TransactionsGetRequestOptions(
+                    offset=offset,
+                    **opts,
+                ),
+                **kwargs,
+            )
+            next_response = client.transactions_get(request).to_dict()
             offset += len(next_response["transactions"])
             for txn in next_response["transactions"]:
                 yield PlaidTransaction.create(txn)
@@ -429,8 +470,10 @@ def initial_sync(
             days_ago=days_ago,
             account_id=acct.account_id,
         )
-    except ItemError as e:
-        if e.code == "ITEM_LOGIN_REQUIRED":
+    except plaid.ApiException as e:
+        response = json.loads(e.body)
+        print(response)
+        if response["error_code"] == "ITEM_LOGIN_REQUIRED":
             raise UpdateLink(acct.item_id)
         else:
             raise
@@ -464,8 +507,10 @@ def sync_account(acct: UserPlaidAccount) -> SyncReport:
             days_ago=days_ago,
             account_id=acct.account_id,
         )
-    except ItemError as e:
-        if e.code == "ITEM_LOGIN_REQUIRED":
+    except plaid.ApiException as e:
+        response = json.loads(e.body)
+        print(response)
+        if response["error_code"] == "ITEM_LOGIN_REQUIRED":
             raise UpdateLink(acct.item_id)
         else:
             raise

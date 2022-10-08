@@ -10,7 +10,7 @@ flask-sqlalchemy
 flask-wtf
 matplotlib
 pandas
-plaid-python<8  # switches to OpenAPI binding
+plaid-python
 sqlalchemy
 toolz
 wtforms>=3  # default HTML5 fields
