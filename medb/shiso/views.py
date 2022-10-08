@@ -326,10 +326,20 @@ def global_sync():
     if form.validate_on_submit():
         items = get_plaid_items(current_user)
         try:
+            need_initial_sync = []
             for item in items:
                 for account in item.accounts:
                     if account.sync_start:
                         results.append(sync_account(account))
+                    else:
+                        need_initial_sync.append(account.name)
+            if need_initial_sync:
+                acctlist = ", ".join(need_initial_sync)
+                flash(
+                    f"Account(s) {acctlist} need an initial sync. Please "
+                    f"go visit the account page and sync from there.",
+                    "warning",
+                )
         except UpdateLink as e:
             return redirect(url_for(".update_link", item_id=e.item_id))
     else:
