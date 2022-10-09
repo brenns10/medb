@@ -297,7 +297,6 @@ def get_item_summary(item_id: int) -> t.Optional[ItemSummary]:
         accounts = get_accounts(item.access_token)
     except plaid.ApiException as e:
         response = json.loads(e.body)
-        print(response)
         if response["error_code"] == "ITEM_LOGIN_REQUIRED":
             raise UpdateLink(item_id)
         else:
@@ -472,7 +471,6 @@ def initial_sync(
         )
     except plaid.ApiException as e:
         response = json.loads(e.body)
-        print(response)
         if response["error_code"] == "ITEM_LOGIN_REQUIRED":
             raise UpdateLink(acct.item_id)
         else:
@@ -509,7 +507,6 @@ def sync_account(acct: UserPlaidAccount) -> SyncReport:
         )
     except plaid.ApiException as e:
         response = json.loads(e.body)
-        print(response)
         if response["error_code"] == "ITEM_LOGIN_REQUIRED":
             raise UpdateLink(acct.item_id)
         else:
