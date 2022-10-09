@@ -11,6 +11,7 @@ flask-wtf
 matplotlib
 pandas
 plaid-python
+requests
 sqlalchemy
 toolz
 wtforms>=3  # default HTML5 fields
