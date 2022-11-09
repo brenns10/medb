@@ -103,7 +103,33 @@ def all_accounts() -> t.Iterator[UserPlaidAccount]:
 @blueprint.route("/link/", methods=["GET", "POST"])
 @login_required
 def link():
-    link_token = plaid_new_item_link_token(current_user)
+    # Link Flow:
+    # 1: GET /link/
+    #   - We call Plaid to get a new link token.
+    #   - We store that token in the session.
+    #   - We serve a webpage with JS and the link token.
+    #   - The user completes the JS flow. Possibly, the user may be redirected
+    #     to the institution's page, and redirected back here.
+    # 2: (maybe) GET /link/?args...
+    #   - Redirected back from the institution's page!
+    #   - Since a link_token already exists in the session, we know we've been
+    #     returned via the OAuth return.
+    #   - We keep the link_token in the session.
+    #   - We serve the same webpage, but in the JS initializer, we set
+    #     "receivedRedirectUri" to the URL got by the browser.
+    #   - The Link automatically launches with the result, and then fires its
+    #     onSuccess, which submits the LinkItemForm with "public_token" set.
+    # 3: POST /link/
+    #   - We get back our desired public token and store it in the DB. We don't
+    #     need the link token at this point.
+    link_token = session.pop("link_token", None)
+    oauth = True
+    if not link_token:
+        link_token = plaid_new_item_link_token(
+            current_user, url_for(".link", _external=True)
+        )
+        oauth = False
+        session["link_token"] = link_token
     form = LinkItemForm(request.form)
     if request.method == "POST":
         if form.validate_on_submit():
@@ -117,30 +143,69 @@ def link():
         link_token=link_token,
         update=None,
         post_url=url_for(".link"),
+        oauth_callback=oauth,
     )
 
 
-@blueprint.route("/plaid_item/<item_id>/update/", methods=["GET", "POST"])
+@blueprint.route("/plaid_item/<item_id>/update/", methods=["GET"])
 @login_required
 def update_link(item_id):
+    # The Link Update Flow:
+    #   Mostly the same as the flow for an initial link, but we have two
+    #   important differences:
+    #   (a) We can't have a variable redirect_uri, which means we can't
+    #       implement all the logic in this one function (because item_id in the
+    #       URL for this view is variable).
+    #   (b) We don't actually need to do the create_item() (i.e. Plaid link
+    #       token exchange) operation after this, because Plaid guarantees the
+    #       public_token won't change.
+    #   So, in this function, we implement the first GET. The second GET (the
+    #   oauth callback) would go to "/plaid_item/finish_update/" if necessary,
+    #   and the final POST will go there regardless. See below (finish_update())
+    #   for the shocking conclusion to this flow.
     item = _view_fetch_upi(item_id)
     form = LinkItemForm(request.form)
-    if request.method == "POST" and form.validate_on_submit():
-        flash("Item re-authenticated!", "success")
-        return redirect(url_for(".home"))
-    link_token = plaid_update_item_link_token(item)
+    link_token = plaid_update_item_link_token(
+        item, url_for(".finish_update", _external=True)
+    )
+    session["link_token"] = link_token
     return render_template(
         "shiso/link.html",
         form=form,
         link_token=link_token,
         update=item,
-        post_url=url_for(".update_link", item_id=item_id),
+        post_url=url_for(".finish_update"),
+        oauth_callback=False,
+    )
+
+
+@blueprint.route("/plaid_item/finish_update/", methods=["GET", "POST"])
+@login_required
+def finish_update():
+    form = LinkItemForm(request.form)
+    link_token = session.pop("link_token", None)
+    if request.method == "POST" and form.validate_on_submit():
+        flash("Item re-authenticated!", "success")
+        return redirect(url_for(".home"))
+    if not link_token:
+        flash("An error occurred here, please try again.", "error")
+        return redirect(url_for(".home"))
+    return render_template(
+        "shiso/link.html",
+        form=form,
+        link_token=link_token,
+        update=None,
+        post_url=url_for(".finish_update"),
+        oauth_callback=True,
     )
 
 
 @blueprint.route("/plaid_item/<item_id>/", methods=["GET", "POST"])
 @login_required
 def link_accounts(item_id: int):
+    # Despite the name "link_accounts()", this is actually done after the
+    # *Plaid* Link process. Here, we are just selecting which accounts from the
+    # Item object we will follow.
     try:
         item_summary = _view_fetch_item_summary(item_id)
     except UpdateLink as e:

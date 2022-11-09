@@ -2,7 +2,9 @@
 {% block title %}{{ "Re-auth" if update else "Link" }} Institution{% endblock %}
 {% block content %}
   <div class="centered-content">
-  {% if update %}
+  {% if oauth_callback %}
+    <h1>Continue Link/Update Process</h1>
+  {% elif update %}
     <h1>Re-Auth Institution</h1>
     <div class="alert alert-info">
       <p>
@@ -17,9 +19,11 @@
     {{ form.csrf_token }}
     {{ form.hidden_tag() }}
   </form>
+  {% if not oauth_callback %}
   <button type="button" class="btn btn-primary" id="link-button">
     {{"Update" if update else "Link"}} Account
   </button>
+  {% endif %}
   </div>
 {% endblock %}
 {% block body_js %}
@@ -28,6 +32,9 @@
     (function($) {
       var handler = Plaid.create({
         token: '{{ link_token }}',
+        {% if oauth_callback %}
+        receivedRedirectUri: window.location.href,
+        {% endif %}
         // Optional – use webhooks to get transaction and error updates
         //webhook: '',
         onLoad: function() {
@@ -64,9 +71,13 @@
         }
       });
 
+    {% if oauth_callback %}
+      handler.open();
+    {% else %}
       $('#link-button').on('click', function(e) {
         handler.open();
       });
+    {% endif %}
     })(jQuery);
   </script>
 {% endblock %}

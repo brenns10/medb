@@ -227,7 +227,7 @@ def get_institution(ins_id: str) -> t.Any:
     return client.institutions_get_by_id(request)
 
 
-def plaid_new_item_link_token(user: User) -> str:
+def plaid_new_item_link_token(user: User, uri: str) -> str:
     client = plaid_client()
     request = LinkTokenCreateRequest(
         products=[Products("transactions")],
@@ -237,12 +237,13 @@ def plaid_new_item_link_token(user: User) -> str:
         user=LinkTokenCreateRequestUser(
             client_user_id=str(User.id),
         ),
+        redirect_uri=uri,
     )
     response = client.link_token_create(request)
     return response["link_token"]
 
 
-def plaid_update_item_link_token(item_summary: ItemSummary) -> str:
+def plaid_update_item_link_token(item_summary: ItemSummary, uri: str) -> str:
     client = plaid_client()
     request = LinkTokenCreateRequest(
         client_name="MeDB Shiso",
@@ -252,6 +253,7 @@ def plaid_update_item_link_token(item_summary: ItemSummary) -> str:
             client_user_id=str(item_summary.user_id),
         ),
         access_token=item_summary.access_token,
+        redirect_uri=uri,
     )
     response = client.link_token_create(request)
     return response["link_token"]
