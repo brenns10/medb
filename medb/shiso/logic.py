@@ -124,7 +124,7 @@ class PlaidTransaction:
 class PlaidBalance:
 
     available: t.Optional[Decimal]
-    current: Decimal
+    current: t.Optional[Decimal]
     limit: t.Optional[Decimal]
     iso_currency_code: t.Optional[str]
     unofficial_currency_code: t.Optional[str]
@@ -138,7 +138,8 @@ class PlaidBalance:
 
         if json_dict.get("available") is not None:
             assign_decimal("available")
-        assign_decimal("current")
+        if json_dict.get("current") is not None:
+            assign_decimal("current")
         if json_dict.get("limit") is not None:
             assign_decimal("limit")
         return cls(**kwargs)
