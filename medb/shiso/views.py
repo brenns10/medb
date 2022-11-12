@@ -48,6 +48,7 @@ from .logic import review_deleted_transaction
 from .logic import review_transaction as do_review_transaction
 from .logic import sync_account
 from .logic import UpdateLink
+from .models import CATEGORIES_V2
 from .models import Subscription
 from .models import Transaction
 from .models import UserPlaidAccount
@@ -438,6 +439,7 @@ def account_report(account_id: int):
         form_url=url_for(".account_report", account_id=account.id),
         form=form,
         report=report,
+        category_tree=CATEGORIES_V2,
         start_date=form.start_date.data,
         end_date=form.end_date.data,
         txn_args={
@@ -515,6 +517,7 @@ def all_account_report():
         form_url=url_for(".all_account_report"),
         form=form,
         report=report,
+        category_tree=CATEGORIES_V2,
         start_date=form.start_date.data,
         end_date=form.end_date.data,
         txn_args={

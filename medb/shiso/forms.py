@@ -20,8 +20,8 @@ from wtforms.validators import NumberRange
 from wtforms.validators import Optional
 from wtforms.validators import ValidationError
 
+from .models import LEAF_CATEGORIES_V2
 from .models import Transaction
-from .models import TRANSACTION_CATEGORIES
 
 
 class LinkItemForm(FlaskForm):
@@ -85,7 +85,7 @@ class TransactionReviewForm(FlaskForm):
     )
     reimbursement_amount = DecimalField(places=2, validators=[Optional()])
     category = RadioField(
-        choices=TRANSACTION_CATEGORIES, validators=[DataRequired()]
+        choices=LEAF_CATEGORIES_V2, validators=[DataRequired()]
     )
     notes = StringField()
 
@@ -148,7 +148,7 @@ class TransactionListForm(Form):
     accounts = SelectMultipleField("Accounts", validators=[Optional()])
     category = SelectMultipleField(
         "Categories",
-        choices=list(zip(TRANSACTION_CATEGORIES, TRANSACTION_CATEGORIES)),
+        choices=list(zip(LEAF_CATEGORIES_V2, LEAF_CATEGORIES_V2)),
         validators=[Optional()],
     )
 

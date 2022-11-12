@@ -3,6 +3,7 @@
 Database models for "shiso"
 """
 import enum
+import itertools
 
 from sqlalchemy import Boolean
 from sqlalchemy import Column
@@ -20,7 +21,7 @@ from medb.model_util import TZDateTime
 from medb.model_util import utcnow
 
 
-TRANSACTION_CATEGORIES = [
+CATEGORIES_V1 = [
     "Transport",
     "Entertainment",
     "Vacation",
@@ -35,6 +36,88 @@ TRANSACTION_CATEGORIES = [
     "Transfer",
     "Pet",
 ]
+
+CATEGORIES_V2 = {
+    "Transport": [
+        "Car Expenses",
+        "Bike Expenses",
+        "Public Transit",
+        "Ride Share",
+        "Bike Share",
+        "Other Transport",
+    ],
+    "Entertainment": [
+        "Streaming Subscription",
+        "Other Entertainment",
+    ],
+    "Dining": [
+        "Lunch",
+        "Coffee & Boba",
+        "Other Dining",
+    ],
+    "Alcohol": [
+        "Bars",
+        "Alcohol Store",
+        "Other Alcohol",
+    ],
+    "Bills & Utilities": [
+        "Rent",
+        "Internet",
+        "Cell Phone",
+        "Cloud Service",
+        "Donation",
+        "Other Bill or Utility",
+    ],
+    "Shopping": [
+        "Household Staples",
+        "Plants & Plant Stuff",
+        "Hobby Purchases",
+        "Clothing",
+        "Gifts",
+        "Other Shopping",
+    ],
+    "Medical": [
+        "Medical",
+    ],
+    "Travel Expenses": [
+        "Visiting Home",
+        "Conference Travel",
+        "Vacation",
+    ],
+    "Wedding": [
+        "Wedding",
+    ],
+    "Groceries": [
+        "Groceries",
+    ],
+    "Charity": [
+        "Charity",
+    ],
+    "Pet": [
+        "Pet",
+    ],
+    "Income": [
+        "Income",
+    ],
+    "Reimbursement": [
+        "Reimbursement",
+    ],
+    "Transfer": [
+        "Transfer",
+    ],
+}
+
+# List of leaf categories
+LEAF_CATEGORIES_V2 = list(itertools.chain.from_iterable(CATEGORIES_V2.values()))
+
+# List of inner categories
+INNER_CATEGORIES_V2 = list(CATEGORIES_V2.keys())
+
+# Map leaf categories to their parents
+CATEGORY_PARENT_V2 = {}
+for parent, leaves in CATEGORIES_V2.items():
+    for leaf in leaves:
+        CATEGORY_PARENT_V2[leaf] = parent
 
 
 class UserPlaidItem(Model):

@@ -35,6 +35,7 @@ from toolz import keyfilter
 
 from .forms import LinkItemForm
 from .forms import TransactionReviewForm
+from .models import CATEGORY_PARENT_V2
 from .models import PaymentChannel
 from .models import Subscription
 from .models import Transaction
@@ -776,6 +777,11 @@ class TransactionReport:
     share_categorized: t.Dict[str, Decimal]
     reimbursed_categorized: t.Dict[str, Decimal]
 
+    parent_categories: t.List[str]
+    all_parent: t.Dict[str, Decimal]
+    share_parent: t.Dict[str, Decimal]
+    reimbursed_parent: t.Dict[str, Decimal]
+
 
 def compute_transaction_report(txns: t.List[Transaction]) -> TransactionReport:
     categories_set = set()
@@ -810,6 +816,16 @@ def compute_transaction_report(txns: t.List[Transaction]) -> TransactionReport:
             txn.review.category
         ] += txn.review.reimbursement_amount
 
+    parents = sorted({CATEGORY_PARENT_V2[cat] for cat in categories})
+    all_parent = {c: Decimal(0) for c in parents}
+    share_parent = {c: Decimal(0) for c in parents}
+    reimbursed_parent = {c: Decimal(0) for c in parents}
+    for cat in categories:
+        parent = CATEGORY_PARENT_V2[cat]
+        all_parent[parent] += all_categorized[cat]
+        share_parent[parent] += share_categorized[cat]
+        reimbursed_parent[parent] += reimbursed_categorized[cat]
+
     return TransactionReport(
         transactions=txns,
         all_net=all_net,
@@ -821,6 +837,10 @@ def compute_transaction_report(txns: t.List[Transaction]) -> TransactionReport:
         all_categorized=all_categorized,
         share_categorized=share_categorized,
         reimbursed_categorized=reimbursed_categorized,
+        parent_categories=parents,
+        all_parent=all_parent,
+        share_parent=share_parent,
+        reimbursed_parent=reimbursed_parent,
     )
 
 
