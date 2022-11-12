@@ -12,6 +12,7 @@ from flask import Blueprint
 from flask import make_response
 from flask import render_template
 from flask_login import login_required
+from sqlalchemy.orm import Query
 
 from .models import FastResult
 from .models import PingResult
@@ -29,6 +30,10 @@ blueprint = Blueprint(
     url_prefix="/speedtest",
     static_folder="../static",
 )
+
+
+def sql_to_df(query: Query) -> pd.DataFrame:
+    return pd.read_sql(query.statement, db.session.connection())
 
 
 @dataclass
@@ -209,7 +214,7 @@ def fix_tz(df, col="time"):
 def plot_speedtest_png():
     oldest = utcnow() - datetime.timedelta(days=60)
     query = SpeedTestResult.query.filter(SpeedTestResult.time >= oldest)
-    df = pd.read_sql(query.statement, db.session.bind)
+    df = sql_to_df(query)
     fix_tz(df)
     df = df.set_index("time")
     df["Upload (Mbps)"] = df["upload_bps"] / 1000000.0
@@ -225,7 +230,7 @@ def plot_speedtest_png():
 def plot_fast_png():
     oldest = utcnow() - datetime.timedelta(days=60)
     query = FastResult.query.filter(FastResult.time >= oldest)
-    df = pd.read_sql(query.statement, db.session.bind)
+    df = sql_to_df(query)
     fix_tz(df)
     df = df.set_index("time")
     df = df.rename(columns={"download_mbps": "Download (Mbps)"})
@@ -238,7 +243,7 @@ def plot_fast_png():
 def dropped_pings_plot(field, sample="1H"):
     oldest = utcnow() - datetime.timedelta(days=2)
     query = PingResult.query.filter(PingResult.time >= oldest)
-    df = pd.read_sql(query.statement, db.session.bind)
+    df = sql_to_df(query)
     fix_tz(df)
     df = df.set_index("time")
     fig, ax = matplotlib.pyplot.subplots()
