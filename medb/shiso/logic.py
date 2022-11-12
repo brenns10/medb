@@ -35,6 +35,7 @@ from toolz import keyfilter
 
 from .forms import LinkItemForm
 from .forms import TransactionReviewForm
+from .models import CATEGORIES_V2
 from .models import CATEGORY_PARENT_V2
 from .models import PaymentChannel
 from .models import Subscription
@@ -724,7 +725,7 @@ def get_all_user_transactions(
     user: User,
     start_date: t.Optional[datetime.date] = None,
     end_date: t.Optional[datetime.date] = None,
-    categories: t.Optional[t.Container[str]] = None,
+    categories: t.Optional[t.Iterable[str]] = None,
     accounts: t.Optional[t.Container[int]] = None,
 ) -> t.List[Transaction]:
     query = (
@@ -745,12 +746,19 @@ def get_all_user_transactions(
             Transaction.active,
         )
     )
+    db_cats = set()
+    if categories:
+        for category in categories:
+            if category in CATEGORIES_V2:
+                db_cats.update(CATEGORIES_V2[category])
+            else:
+                db_cats.add(category)
     if start_date:
         query = query.filter(Transaction.original_date >= start_date)
     if end_date:
         query = query.filter(Transaction.original_date <= end_date)
     if categories:
-        query = query.filter(TransactionReview.category.in_(categories))
+        query = query.filter(TransactionReview.category.in_(db_cats))
     if accounts:
         query = query.filter(
             UserPlaidAccount.id.in_(accounts),

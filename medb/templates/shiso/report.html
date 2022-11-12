@@ -50,7 +50,7 @@
             {% endif %}
           {% endfor %}
           <tr style="background-color: rgba(0,0,0,.05)">
-            <th scope="row">{{parent}}</td>
+            <th scope="row"><a href="{{url_for('.all_account_transactions', category=parent, **txn_args)}}">{{parent}}</a></td>
             <td class="text-right">{{report.share_parent[parent] | usd}}</td>
             <td class="text-right">{{report.reimbursed_parent[parent] | usd}}</td>
             <td class="text-right">{{report.all_parent[parent] | usd}}</td>

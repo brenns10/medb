@@ -113,6 +113,9 @@ LEAF_CATEGORIES_V2 = list(itertools.chain.from_iterable(CATEGORIES_V2.values()))
 # List of inner categories
 INNER_CATEGORIES_V2 = list(CATEGORIES_V2.keys())
 
+# All categories: inner/outer
+ALL_CATEGORIES_V2 = list(set(LEAF_CATEGORIES_V2 + INNER_CATEGORIES_V2))
+
 # Map leaf categories to their parents
 CATEGORY_PARENT_V2 = {}
 for parent, leaves in CATEGORIES_V2.items():
