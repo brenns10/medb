@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Public section, including homepage and signup."""
+from flask import abort
 from flask import Blueprint
 from flask import current_app
 from flask import flash
@@ -62,3 +63,8 @@ def logout():
     flash("You are logged out.", "info")
     # TODO better goodbye page
     return redirect(url_for("public.home"))
+
+
+@blueprint.route("/500/")
+def error():
+    abort(500)
