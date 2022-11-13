@@ -98,7 +98,10 @@
         {{form.reimbursement_amount.label}}
         {{ form.reimbursement_amount(class_="form-control") }}
       </div>
-      {{ show_radio(form.category) }}
+      <div class="form-group">
+        {{form.category.label}}
+        {{ form.category(class_="form-control") }}
+      </div>
       <div class="form-group">
         {{ form.notes.label }}
         {{ form.notes(class_="form-control") }}

@@ -22,9 +22,29 @@ from wtforms.validators import Optional
 from wtforms.validators import ValidationError
 from wtforms.widgets import HiddenInput
 
-from .models import ALL_CATEGORIES_V2
+from .models import CATEGORIES_V2
 from .models import LEAF_CATEGORIES_V2
 from .models import Transaction
+
+
+def category_choices(with_pick: bool = False, include_inner: bool = False):
+    choices = []
+    if with_pick:
+        choices.append(("<Pick a Category>", "<Pick a Category>"))
+    for parent, categories in CATEGORIES_V2.items():
+        if len(categories) != 1 and include_inner:
+            choices.append((parent, parent))
+        for category in categories:
+            if parent != category:
+                choices.append((category, f"{parent}: {category}"))
+            else:
+                choices.append((category, category))
+    return choices
+
+
+def validate_category(form: Form, field: Field):
+    if field.data not in LEAF_CATEGORIES_V2:
+        raise ValidationError("Pick a Category")
 
 
 class LinkItemForm(FlaskForm):
@@ -87,8 +107,11 @@ class TransactionReviewForm(FlaskForm):
         validators=[DataRequired()],
     )
     reimbursement_amount = DecimalField(places=2, validators=[Optional()])
-    category = RadioField(
-        choices=ALL_CATEGORIES_V2, validators=[DataRequired()]
+    other_reimbursement = DecimalField(places=2, default=0, validators=[Optional()])
+    category = SelectField(
+        choices=category_choices(True),
+        validators=[DataRequired(), validate_category],
+        default="<Pick a Category>",
     )
     notes = StringField()
 
@@ -151,7 +174,7 @@ class TransactionListForm(Form):
     accounts = SelectMultipleField("Accounts", validators=[Optional()])
     category = SelectMultipleField(
         "Categories",
-        choices=list(zip(ALL_CATEGORIES_V2, ALL_CATEGORIES_V2)),
+        choices=category_choices(with_pick=False, include_inner=True),
         validators=[Optional()],
     )
 
@@ -185,16 +208,12 @@ class TransactionBulkUpdateForm(FlaskForm):
 
     category = SelectField(
         "Categories",
-        choices=[("<Pick a Category>", "<Pick a Category>")]
-        + list(zip(LEAF_CATEGORIES_V2, LEAF_CATEGORIES_V2)),
+        choices=category_choices(True),
+        validators=[validate_category],
         default="<Pick a Category>",
     )
     transactions = TransactionListField("Transactions")
     return_url = HiddenField()
-
-    def validate_category(self, field: Field):
-        if field.data == "<Pick a Category>":
-            raise ValidationError("Pick a category!")
 
     def validate_transactions(self, field: Field):
         if not field.data:
