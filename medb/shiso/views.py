@@ -473,16 +473,10 @@ def account_report(account_id: int):
 @blueprint.route("/transactions/", methods=["GET"])
 @login_required
 def all_account_transactions():
-    today = date.today()
-    start = today.replace(day=1)
-    data = {
-        "start_date": start,
-        "end_date": today,
-    }
     accounts = get_linked_accounts(current_user.id)
     form = TransactionListForm()
     form.accounts.choices = [(str(a.id), a.name) for a in accounts]
-    form.process(request.args, data=data)
+    form.process(request.args)
     if not form.validate():
         flash_errors(form)
         return render_template(
@@ -498,6 +492,8 @@ def all_account_transactions():
         form.end_date.data,
         categories=form.category.data,
         accounts=accounts,
+        merchant=form.merchant.data,
+        name=form.name.data,
     )
     return render_template(
         "shiso/all_transactions.html",

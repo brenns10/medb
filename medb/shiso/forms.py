@@ -165,28 +165,38 @@ class SubscriptionReviewForm(FlaskForm):
 # NOTE: not FlaskForm since submitted via GET, no need for CSRF
 class AccountReportForm(Form):
 
-    start_date = DateField("Report Start")
-    end_date = DateField("Report End")
+    start_date = DateField("Report Start", validators=[Optional()])
+    end_date = DateField("Report End", validators=[Optional()])
 
     def validate_end_date(self, field: Field):
-        if self.end_date.data < self.start_date.data:
+        if (
+            self.end_date.data
+            and self.start_date.data
+            and self.end_date.data < self.start_date.data
+        ):
             raise ValidationError("Start date must come before end date")
 
 
 # NOTE: not FlaskForm since submitted via GET, no need for CSRF
 class TransactionListForm(Form):
 
-    start_date = DateField("Report Start")
-    end_date = DateField("Report End")
+    start_date = DateField("Report Start", validators=[Optional()])
+    end_date = DateField("Report End", validators=[Optional()])
     accounts = SelectMultipleField("Accounts", validators=[Optional()])
     category = SelectMultipleField(
         "Categories",
         choices=category_choices(with_pick=False, include_inner=True),
         validators=[Optional()],
     )
+    merchant = HiddenField("Merchant")
+    name = HiddenField("Name")
 
     def validate_end_date(self, field: Field):
-        if self.end_date.data < self.start_date.data:
+        if (
+            self.end_date.data
+            and self.start_date.data
+            and self.end_date.data < self.start_date.data
+        ):
             raise ValidationError("Start date must come before end date")
 
 

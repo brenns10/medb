@@ -749,6 +749,8 @@ def get_all_user_transactions(
     end_date: t.Optional[datetime.date] = None,
     categories: t.Optional[t.Iterable[str]] = None,
     accounts: t.Optional[t.Container[int]] = None,
+    merchant: t.Optional[str] = None,
+    name: t.Optional[str] = None,
 ) -> t.List[Transaction]:
     query = (
         Transaction.query.options(
@@ -785,6 +787,15 @@ def get_all_user_transactions(
         query = query.filter(
             UserPlaidAccount.id.in_(accounts),
         )
+    if merchant is not None:
+        query = query.filter(
+            and_(
+                Transaction.plaid_merchant_name is not None,
+                Transaction.plaid_merchant_name == merchant,
+            )
+        )
+    if name is not None:
+        query = query.filter(Transaction.name == name)
     return query.order_by(
         Transaction.original_date.desc(),
         Transaction.id.desc(),

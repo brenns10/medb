@@ -20,7 +20,7 @@
     <tr>
       <th scope="col"><input type="checkbox" onchange="setAll(this.checked)" autocomplete="false" class="bulk-update-checkbox d-none"></input></th>
       <th scope="col">Date</th>
-      <th scope="col">Name</th>
+      <th scope="col">Name / Merchant</th>
       <th scope="col">Category</th>
       <th class="text-right" scope="col">Amount</th>
       <th class="text-right" scope="col">Paige</th>
@@ -43,7 +43,13 @@
           {% endif %}
         </td>
         <td><a href="{{url_for(review_dest or '.global_review_transaction', txn_id=txn.id)}}">{{txn.original_date}}</a></td>
-        <td>{{txn.name}}</td>
+        <td>
+          <a href="{{url_for('.all_account_transactions', name=txn.name)}}">{{txn.name}}</a>
+          {% if txn.plaid_merchant_name %}
+            /
+            <a href="{{url_for('.all_account_transactions', merchant=txn.plaid_merchant_name)}}">{{txn.plaid_merchant_name}}</a>
+          {% endif %}
+        </td>
         <td>{{txn.review.category if txn.review else "" }}</td>
         <td class="text-right">{{txn.amount | usd}}</td>
         <td class="text-right">{{(txn.review.reimbursement_amount if txn.review else 0) | usd}}</td>
