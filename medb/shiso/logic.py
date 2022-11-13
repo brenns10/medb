@@ -8,6 +8,7 @@ import enum
 import json
 import re
 import typing as t
+from collections import Counter
 from dataclasses import dataclass
 from dataclasses import field
 from decimal import Decimal
@@ -1112,3 +1113,28 @@ def get_subscriptions_transactions(user: User) -> Subscription:
         .filter(UserPlaidItem.user_id == user.id)
         .all()
     )
+
+
+def guess_category(txn: Transaction) -> t.Optional[str]:
+    """
+    Based on the 5 most recent transactions matching the name or merchant,
+    guess the transaction category.
+    """
+    query = Transaction.query.options(db.joinedload(Transaction.review))
+    query = query.join(TransactionReview)
+    similar = (
+        query.filter(
+            Transaction.active,
+            or_(
+                Transaction.plaid_merchant_name == txn.plaid_merchant_name,
+                Transaction.name == txn.name,
+            ),
+        )
+        .order_by(Transaction.date.desc())
+        .limit(5)
+        .all()
+    )
+    if not similar:
+        return None
+    category_counter = Counter(t.review.category for t in similar)
+    return category_counter.most_common(1)[0][0]

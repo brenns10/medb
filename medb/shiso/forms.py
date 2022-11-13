@@ -125,7 +125,10 @@ class TransactionReviewForm(FlaskForm):
 
     @classmethod
     def create(
-        cls, txn: Transaction, formdata: t.Any
+        cls,
+        txn: Transaction,
+        formdata: t.Any,
+        category_guess: t.Optional[str] = None,
     ) -> "TransactionReviewForm":
         data = {}
         if txn.review:
@@ -140,6 +143,8 @@ class TransactionReviewForm(FlaskForm):
             data["reimbursement_amount"] = txn.review.reimbursement_amount
             data["notes"] = txn.review.notes
             data["category"] = txn.review.category
+        elif category_guess:
+            data["category"] = category_guess
         form = cls(formdata, data=data)
         form.reimbursement_amount.validators = list(
             form.reimbursement_amount.validators

@@ -40,6 +40,7 @@ from .logic import get_transaction
 from .logic import get_transactions
 from .logic import get_upa_by_id
 from .logic import get_upi_by_id
+from .logic import guess_category
 from .logic import initial_sync
 from .logic import ItemSummary
 from .logic import link_account
@@ -302,7 +303,8 @@ def global_review():
 def review_transaction(txn_id: int, acct: bool):
     txn = _view_fetch_transaction(txn_id)
     if request.method == "GET":
-        form = TransactionReviewForm.create(txn, None)
+        cat = guess_category(txn)
+        form = TransactionReviewForm.create(txn, None, category_guess=cat)
         dest = (
             ".account_review_transaction"
             if acct
