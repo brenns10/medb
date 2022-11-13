@@ -302,14 +302,12 @@ def global_review():
 
 def review_transaction(txn_id: int, acct: bool):
     txn = _view_fetch_transaction(txn_id)
+    dest = (
+        ".account_review_transaction" if acct else ".global_review_transaction"
+    )
     if request.method == "GET":
         cat = guess_category(txn)
         form = TransactionReviewForm.create(txn, None, category_guess=cat)
-        dest = (
-            ".account_review_transaction"
-            if acct
-            else ".global_review_transaction"
-        )
         return render_template(
             "shiso/transaction_review.html",
             form=form,
@@ -327,6 +325,7 @@ def review_transaction(txn_id: int, acct: bool):
             return render_template(
                 "shiso/transaction_review.html",
                 form=form,
+                dest=dest,
                 txn=txn,
             )
         do_review_transaction(txn, form)
@@ -336,11 +335,6 @@ def review_transaction(txn_id: int, acct: bool):
         next_ = get_next_unreviewed_transaction(after=txn, user=current_user)
     if next_:
         flash("Success, reviewing next transaction now", "info")
-        dest = (
-            ".account_review_transaction"
-            if acct
-            else ".global_review_transaction"
-        )
         return redirect(url_for(dest, txn_id=next_.id))
     else:
         flash("Success, all transactions reviewed", "info")
