@@ -1122,12 +1122,25 @@ def guess_category(txn: Transaction) -> t.Optional[str]:
     """
     query = Transaction.query.options(db.joinedload(Transaction.review))
     query = query.join(TransactionReview)
+    merchant = txn.plaid_merchant_name or "NO MATCH"
+    name = txn.name or "NO MATCH"
+    sub_id = txn.subscription_id or -1
     similar = (
         query.filter(
             Transaction.active,
             or_(
-                Transaction.plaid_merchant_name == txn.plaid_merchant_name,
-                Transaction.name == txn.name,
+                and_(
+                    Transaction.plaid_merchant_name is not None,
+                    Transaction.plaid_merchant_name == merchant,
+                ),
+                and_(
+                    Transaction.name is not None,
+                    Transaction.name == name,
+                ),
+                and_(
+                    Transaction.subscription_id is not None,
+                    Transaction.subscription_id == sub_id,
+                ),
             ),
         )
         .order_by(Transaction.date.desc())
