@@ -118,7 +118,7 @@ class TransactionReviewForm(FlaskForm):
     notes = StringField()
 
     def validate_reimbursement_amount(self, field: Field):
-        if self.reimbursement_type.data == "Custom" and not field.data:
+        if self.reimbursement_type.data == "Custom" and field.data is None:
             raise ValidationError(
                 "You must provide a custom reimbursement amount"
             )
