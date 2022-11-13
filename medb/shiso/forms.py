@@ -107,7 +107,9 @@ class TransactionReviewForm(FlaskForm):
         validators=[DataRequired()],
     )
     reimbursement_amount = DecimalField(places=2, validators=[Optional()])
-    other_reimbursement = DecimalField(places=2, default=0, validators=[Optional()])
+    other_reimbursement = DecimalField(
+        places=2, default=0, validators=[Optional()]
+    )
     category = SelectField(
         choices=category_choices(True),
         validators=[DataRequired(), validate_category],

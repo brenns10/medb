@@ -704,6 +704,7 @@ def review_deleted_transaction(txn: Transaction):
 
 
 def review_transaction(txn: Transaction, review: TransactionReviewForm):
+    other = Decimal(0)
     if review.reimbursement_type.data == "None":
         amt = Decimal(0)
     elif review.reimbursement_type.data == "Half":
@@ -712,13 +713,14 @@ def review_transaction(txn: Transaction, review: TransactionReviewForm):
         amt = txn.amount
     else:
         amt = review.reimbursement_amount.data
-        assert Decimal(0) <= amt <= txn.amount
+        other = review.other_reimbursement.data
     if txn.review:
         rev = txn.review
     else:
         rev = TransactionReview()
     rev.transaction_id = txn.id
     rev.reimbursement_amount = amt
+    rev.other_reimbursement = other
     rev.category = review.category.data
     rev.notes = review.notes.data
     rev.reviewed_amount = txn.amount
@@ -796,6 +798,7 @@ class TransactionReport:
     all_net: Decimal
     share_net: Decimal
     reimbursed_net: Decimal
+    other_net: Decimal
     unreviewed_net: Decimal
     unreviewed_count: int
 
@@ -803,11 +806,13 @@ class TransactionReport:
     all_categorized: t.Dict[str, Decimal]
     share_categorized: t.Dict[str, Decimal]
     reimbursed_categorized: t.Dict[str, Decimal]
+    other_categorized: t.Dict[str, Decimal]
 
     parent_categories: t.List[str]
     all_parent: t.Dict[str, Decimal]
     share_parent: t.Dict[str, Decimal]
     reimbursed_parent: t.Dict[str, Decimal]
+    other_parent: t.Dict[str, Decimal]
 
 
 def compute_transaction_report(txns: t.List[Transaction]) -> TransactionReport:
@@ -827,36 +832,49 @@ def compute_transaction_report(txns: t.List[Transaction]) -> TransactionReport:
     all_net = Decimal(0)
     share_net = Decimal(0)
     reimbursed_net = Decimal(0)
+    other_net = Decimal(0)
     all_categorized = {c: Decimal(0) for c in categories}
     share_categorized = {c: Decimal(0) for c in categories}
     reimbursed_categorized = {c: Decimal(0) for c in categories}
+    other_categorized = {c: Decimal(0) for c in categories}
 
     for txn in txns:
         all_net += txn.amount
-        share_net += txn.amount - txn.review.reimbursement_amount
+        share_net += (
+            txn.amount
+            - txn.review.reimbursement_amount
+            - txn.review.other_reimbursement
+        )
         reimbursed_net += txn.review.reimbursement_amount
+        other_net += txn.review.other_reimbursement
         all_categorized[txn.review.category] += txn.amount
         share_categorized[txn.review.category] += (
-            txn.amount - txn.review.reimbursement_amount
+            txn.amount
+            - txn.review.reimbursement_amount
+            - txn.review.other_reimbursement
         )
         reimbursed_categorized[
             txn.review.category
         ] += txn.review.reimbursement_amount
+        other_categorized[txn.review.category] += txn.review.other_reimbursement
 
     parents = sorted({CATEGORY_PARENT_V2[cat] for cat in categories})
     all_parent = {c: Decimal(0) for c in parents}
     share_parent = {c: Decimal(0) for c in parents}
     reimbursed_parent = {c: Decimal(0) for c in parents}
+    other_parent = {c: Decimal(0) for c in parents}
     for cat in categories:
         parent = CATEGORY_PARENT_V2[cat]
         all_parent[parent] += all_categorized[cat]
         share_parent[parent] += share_categorized[cat]
         reimbursed_parent[parent] += reimbursed_categorized[cat]
+        other_parent[parent] += other_categorized[cat]
 
     return TransactionReport(
         transactions=txns,
         all_net=all_net,
         share_net=share_net,
+        other_net=other_net,
         reimbursed_net=reimbursed_net,
         unreviewed_net=unreviewed_net,
         unreviewed_count=unreviewed_count,
@@ -864,10 +882,12 @@ def compute_transaction_report(txns: t.List[Transaction]) -> TransactionReport:
         all_categorized=all_categorized,
         share_categorized=share_categorized,
         reimbursed_categorized=reimbursed_categorized,
+        other_categorized=other_categorized,
         parent_categories=parents,
         all_parent=all_parent,
         share_parent=share_parent,
         reimbursed_parent=reimbursed_parent,
+        other_parent=other_parent,
     )
 
 

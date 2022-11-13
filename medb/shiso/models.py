@@ -266,6 +266,9 @@ class TransactionReview(Model):
     )
 
     reimbursement_amount = Column(SafeNumeric(16, 3), nullable=False)
+    other_reimbursement = Column(
+        SafeNumeric(16, 3), nullable=False, server_default="0"
+    )
     category = Column(String(100), nullable=False)
     notes = Column(String, nullable=True)
     updated = Column(

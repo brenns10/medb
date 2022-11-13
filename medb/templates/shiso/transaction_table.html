@@ -23,7 +23,8 @@
       <th scope="col">Name</th>
       <th scope="col">Category</th>
       <th class="text-right" scope="col">Amount</th>
-      <th class="text-right" scope="col">Reimburse</th>
+      <th class="text-right" scope="col">Paige</th>
+      <th class="text-right" scope="col">Other</th>
     </tr>
   </thead>
   <tbody>
@@ -46,6 +47,7 @@
         <td>{{txn.review.category if txn.review else "" }}</td>
         <td class="text-right">{{txn.amount | usd}}</td>
         <td class="text-right">{{(txn.review.reimbursement_amount if txn.review else 0) | usd}}</td>
+        <td class="text-right">{{(txn.review.other_reimbursement if txn.review else 0) | usd}}</td>
       </tr>
     {% endfor %}
   </tbody>
