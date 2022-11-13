@@ -1,6 +1,6 @@
-{% extends "layout.html" %}
+{% extends "shiso/transaction_table.html" %}
 {% block title %}Transaction Listing - All Accounts{% endblock %}
-{% block content %}
+{% block header %}
 <h1>Transaction Listing - All Accounts</h1>
 <form method="GET" action="{{url_for('.all_account_transactions')}}" >
   <div class="form-group">
@@ -21,7 +21,9 @@
   </div>
   <div class="form-group">
     <button class="btn btn-md btn-primary" type="submit">Load Transactions</button>
+    <a class="btn btn-md btn-info" id="bulk-update-toggler">
+      Start Bulk Update
+    </a>
   </div>
 </form>
-{% include "shiso/transaction_table.html" %}
 {% endblock %}

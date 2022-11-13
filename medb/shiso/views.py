@@ -23,10 +23,12 @@ from .forms import LinkAccountForm
 from .forms import LinkItemForm
 from .forms import SubscriptionReviewForm
 from .forms import SyncAccountForm
+from .forms import TransactionBulkUpdateForm
 from .forms import TransactionListForm
 from .forms import TransactionReviewForm
 from .logic import compute_transaction_report
 from .logic import create_item
+from .logic import do_bulk_transaction_update
 from .logic import get_all_user_transactions
 from .logic import get_item_summary
 from .logic import get_linked_accounts
@@ -253,6 +255,7 @@ def account_transactions(account_id: int):
         txns=txr,
         account=account,
         form=SyncAccountForm(),
+        upd_form=TransactionBulkUpdateForm(),
         next_unreviewed=next_unreviewed,
         review_dest=".account_review_transaction",
     )
@@ -359,6 +362,21 @@ def account_review_transaction(txn_id: int):
 @login_required
 def global_review_transaction(txn_id: int):
     return review_transaction(txn_id, False)
+
+
+@blueprint.route("/transaction/bulk-update/", methods=["POST"])
+def bulk_update():
+    print("bulk update, returning to URL:")
+    print(request.form["return_url"])
+    form = TransactionBulkUpdateForm(request.form)
+    if not form.validate_on_submit():
+        flash_errors(form, "danger")
+    else:
+        do_bulk_transaction_update(form.transactions.data, form.category.data)
+    return_url = form.return_url.data
+    if not return_url:
+        return_url = url_for(".home")
+    return redirect(return_url)
 
 
 @blueprint.route("/account/<int:account_id>/sync/", methods=["POST"])
@@ -468,6 +486,7 @@ def all_account_transactions():
         return render_template(
             "shiso/all_transactions.html",
             form=form,
+            upd_form=TransactionBulkUpdateForm(),
             txns=[],
         )
     accounts = list(map(int, form.accounts.data))
@@ -481,6 +500,7 @@ def all_account_transactions():
     return render_template(
         "shiso/all_transactions.html",
         form=form,
+        upd_form=TransactionBulkUpdateForm(),
         txns=transactions,
         review_dest=".global_review_transaction",
     )
@@ -563,6 +583,7 @@ def subscription_show(sub_id):
         sub=sub,
         txns=sub_txns,
         form=form,
+        upd_form=TransactionBulkUpdateForm(),
     )
 
 

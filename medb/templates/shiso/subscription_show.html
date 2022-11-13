@@ -1,6 +1,6 @@
-{% extends "layout.html" %}
+{% extends "shiso/transaction_table.html" %}
 {% block title %}Subscription - {{ sub.name }}{% endblock %}
-{% block content %}
+{% block header %}
   <h1>Subscription - {{ sub.name }}</h1>
   <table class="table table-striped">
     <tbody>
@@ -45,5 +45,7 @@
     </div>
   </form>
   <h2>Subscription Transactions</h2>
-  {% include "shiso/transaction_table.html" %}
+  <a class="btn btn-md btn-info" id="bulk-update-toggler">
+    Start Bulk Update
+  </a>
 {% endblock %}

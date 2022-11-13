@@ -1,6 +1,6 @@
-{% extends "layout.html" %}
+{% extends "shiso/transaction_table.html" %}
 {% block title %}{{ account.name }} - Account Overview - Shiso{% endblock %}
-{% block content %}
+{% block header %}
 <h1>{{ account.name }} - Account Overview</h1>
 {% if account.sync_end %}
 <p>Last synced {{account.sync_end}}</p>
@@ -31,7 +31,9 @@
        href="{{ url_for('.account_rename', account_id=account.id) }}">
       Rename
     </a>
+    <a class="btn btn-md btn-info" id="bulk-update-toggler">
+      Start Bulk Update
+    </a>
   </div>
 </form>
-{% include "shiso/transaction_table.html" %}
 {% endblock %}

@@ -12,6 +12,7 @@ from wtforms.fields import DecimalField
 from wtforms.fields import Field
 from wtforms.fields import HiddenField
 from wtforms.fields import RadioField
+from wtforms.fields import SelectField
 from wtforms.fields import SelectMultipleField
 from wtforms.fields import StringField
 from wtforms.form import Form
@@ -19,8 +20,10 @@ from wtforms.validators import DataRequired
 from wtforms.validators import NumberRange
 from wtforms.validators import Optional
 from wtforms.validators import ValidationError
+from wtforms.widgets import HiddenInput
 
 from .models import ALL_CATEGORIES_V2
+from .models import LEAF_CATEGORIES_V2
 from .models import Transaction
 
 
@@ -160,3 +163,39 @@ class TransactionListForm(Form):
 class AccountRenameForm(FlaskForm):
 
     name = StringField(validators=[DataRequired()])
+
+
+class TransactionListField(Field):
+    widget = HiddenInput()
+
+    def _value(self):
+        if self.data:
+            return "\n".join(str(id_) for id_ in self.data)
+        else:
+            return ""
+
+    def process_formdata(self, data):
+        if data and data[0].strip():
+            self.data = [int(s.strip()) for s in data[0].strip().split("\n")]
+        else:
+            self.data = []
+
+
+class TransactionBulkUpdateForm(FlaskForm):
+
+    category = SelectField(
+        "Categories",
+        choices=[("<Pick a Category>", "<Pick a Category>")]
+        + list(zip(LEAF_CATEGORIES_V2, LEAF_CATEGORIES_V2)),
+        default="<Pick a Category>",
+    )
+    transactions = TransactionListField("Transactions")
+    return_url = HiddenField()
+
+    def validate_category(self, field: Field):
+        if field.data == "<Pick a Category>":
+            raise ValidationError("Pick a category!")
+
+    def validate_transactions(self, field: Field):
+        if not field.data:
+            raise ValidationError("No transactions selected.")

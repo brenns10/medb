@@ -1,8 +1,24 @@
+{% extends "layout.html" %}
+{% block content %}
+{% block header %}
+{% endblock %}
+<form id="bulk-update-form" class="form-inline mb-2 d-none" autocomplete="off"
+      method="POST" action="{{url_for('.bulk_update')}}">
+  {{ upd_form.csrf_token }}
+  {{ upd_form.transactions }}
+  {{ upd_form.return_url }}
+  <div class="form-group">
+    <button type="submit" class="btn btn-md btn-primary">Bulk Update</button>
+  </div>
+  <div class="form-group mx-sm-2">
+    {{ upd_form.category(class_="form-control") }}
+  </div>
+</form>
 <div class="table-responsive">
 <table class="table table-striped table-hover">
   <thead>
     <tr>
-      <th scope="col"></th>
+      <th scope="col"><input type="checkbox" onchange="setAll(this.checked)" autocomplete="false" class="bulk-update-checkbox d-none"></input></th>
       <th scope="col">Date</th>
       <th scope="col">Name</th>
       <th scope="col">Category</th>
@@ -14,6 +30,9 @@
     {% for txn in txns %}
       <tr>
         <td>
+          {% if txn.review %}
+            <input type="checkbox" onchange="setId({{txn.id}}, this.checked)" autocomplete="false" class="bulk-update-checkbox d-none"></input>
+          {% endif %}
           {% if txn.needs_review %}<span class="fa fa-edit fa-md main-list-item-icon"></span>{% endif %}
           {% if not txn.posted %}<span class="fa fa-hourglass-half fa-md main-list-item-icon"></span>{% endif %}
           {% if txn.subscription_id is not none %}
@@ -32,3 +51,54 @@
   </tbody>
 </table>
 </div>
+{% endblock %}
+{% block body_js %}
+  <script type="text/javascript">
+    var setId;
+    var setAll;
+    (function($) {
+        let ids = [];
+        let all_ids = [{% for txn in txns %}{{txn.id}},{% endfor %}];
+
+        /* Called when the header checkbox toggles */
+        setAll = function(state) {
+            $(".bulk-update-checkbox").each(function (i, elem) { elem.checked = state; });
+            if (state) {
+                ids = all_ids;
+            } else {
+                ids = [];
+            }
+        }
+
+        /* Called when individual checkboxes toggle */
+        setId = function(id, checked) {
+            var idx = ids.indexOf(id);
+            if (idx === -1 && checked)
+                ids.push(id);
+            else if (idx !== -1 && !checked)
+                ids.splice(idx, 1);
+        }
+
+        /* Button which toggles display of the update stuff */
+        $("#bulk-update-toggler").on("click", function (e) {
+            $("#bulk-update-form").toggleClass("d-none");
+            $(".bulk-update-checkbox").toggleClass("d-none");
+        });
+
+        /* Submit button: update data */
+        $("#bulk-update-form").on("submit", function () {
+            let str = "";
+            for (id of ids) {
+                str += id.toString() + "\n";
+            }
+            let form = $("#bulk-update-form").get(0);
+            form.transactions.value = str;
+            form.return_url.value = window.location.href;
+            return true;
+        })
+
+        /* Ensure buttons are cleared on load, that's the assumed initial state */
+        $(".bulk-update-checkbox").each(function (i, elem) { elem.checked = false; });
+    })(jQuery);
+  </script>
+{% endblock %}

@@ -623,6 +623,16 @@ def get_transaction(txn_id) -> t.Optional[Transaction]:
     ).get(txn_id)
 
 
+def get_transactions_bulk(txn_ids: t.List[int]) -> t.List[Transaction]:
+    return (
+        Transaction.query.options(
+            db.joinedload(Transaction.review),
+        )
+        .filter(Transaction.id.in_(txn_ids))
+        .all()
+    )
+
+
 def get_next_unreviewed_transaction(
     acct: t.Optional[UserPlaidAccount] = None,
     after: t.Optional[Transaction] = None,
@@ -718,6 +728,15 @@ def review_transaction(txn: Transaction, review: TransactionReviewForm):
     rev.reviewed_posted = txn.posted
     rev.mark_updated()
     db.session.add(rev)
+    db.session.commit()
+
+
+def do_bulk_transaction_update(txn_ids: t.List[int], category: str):
+    txns = get_transactions_bulk(txn_ids)
+    for txn in txns:
+        assert txn.review
+        txn.review.category = category
+        db.session.add(txn.review)
     db.session.commit()
 
 
