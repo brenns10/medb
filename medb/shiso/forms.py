@@ -17,7 +17,6 @@ from wtforms.fields import SelectMultipleField
 from wtforms.fields import StringField
 from wtforms.form import Form
 from wtforms.validators import DataRequired
-from wtforms.validators import NumberRange
 from wtforms.validators import Optional
 from wtforms.validators import ValidationError
 from wtforms.widgets import HiddenInput
@@ -146,12 +145,6 @@ class TransactionReviewForm(FlaskForm):
         elif category_guess:
             data["category"] = category_guess
         form = cls(formdata, data=data)
-        form.reimbursement_amount.validators = list(
-            form.reimbursement_amount.validators
-        )
-        form.reimbursement_amount.validators.append(
-            NumberRange(min=Decimal(0), max=txn.amount)
-        )
         return form
 
 
