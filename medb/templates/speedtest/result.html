@@ -193,9 +193,9 @@
             </tr>
             <tr>
               <th scope="row">IPv6</th>
-              <td>{{ "%.1f" | format(ping.avg_v6_1day) }} ms</td>
-              <td>{{ "%.1f" | format(ping.avg_v6_7day) }} ms</td>
-              <td>{{ "%.1f" | format(ping.avg_v6_30day) }} ms</td>
+              <td>{{ "%.1f" | maybe_format(ping.avg_v6_1day) }} ms</td>
+              <td>{{ "%.1f" | maybe_format(ping.avg_v6_7day) }} ms</td>
+              <td>{{ "%.1f" | maybe_format(ping.avg_v6_30day) }} ms</td>
             </tr>
             <tr>
               <th scope="row">IPv6 Loss</th>

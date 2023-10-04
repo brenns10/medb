@@ -275,3 +275,11 @@ def speedtest_results():
         ping=ping_results(),
         fast=fast_stats(),
     )
+
+
+@blueprint.app_template_filter("maybe_format")
+def maybe_format(fmt, arg):
+    if arg:
+        return fmt % arg
+    else:
+        return "None"
