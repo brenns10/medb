@@ -21,7 +21,6 @@ from medb.extensions import bcrypt
 from medb.extensions import celery
 from medb.extensions import csrf_protect
 from medb.extensions import db
-from medb.extensions import debug_toolbar
 from medb.extensions import login_manager
 from medb.extensions import migrate
 
@@ -53,7 +52,6 @@ def register_extensions(app):
         migrate.init_app(app, db)
     csrf_protect.init_app(app)
     login_manager.init_app(app)
-    debug_toolbar.init_app(app)
     celery.init_app(app)
     register_periodic_tasks()
     return None

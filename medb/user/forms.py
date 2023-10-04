@@ -21,9 +21,9 @@ class LoginForm(FlaskForm):
         super(LoginForm, self).__init__(*args, **kwargs)
         self.user = None
 
-    def validate(self):
+    def validate(self, *args, **kwargs):
         """Validate the form."""
-        initial_validation = super(LoginForm, self).validate()
+        initial_validation = super(LoginForm, self).validate(*args, **kwargs)
         if not initial_validation:
             return False
 

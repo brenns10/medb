@@ -2,7 +2,6 @@
 """Extensions module. Each extension is initialized in the app factory located in app.py."""
 from celery import Celery
 from flask_bcrypt import Bcrypt
-from flask_debugtoolbar import DebugToolbarExtension
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
@@ -15,7 +14,6 @@ login_manager.login_view = "user.login"
 login_manager.login_message_category = "info"
 db = SQLAlchemy()
 migrate = Migrate()
-debug_toolbar = DebugToolbarExtension()
 
 
 class CeleryExtension(Celery):
