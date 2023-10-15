@@ -145,7 +145,7 @@ class UserPlaidAccount(Model):
     item_id = Column(Integer, ForeignKey("user_plaid_item.id"), nullable=False)
 
     account_id = Column(String(100), nullable=False)
-    item: UserPlaidItem = db.relationship(
+    item = db.relationship(
         "UserPlaidItem", backref=db.backref("accounts", lazy=True)
     )
 

@@ -1,7 +1,7 @@
 celery[librabbitmq]
 click
 environs
-flask<3  # some lingering library compatibility issues
+flask<3  # pinned for flask-login
 flask-bcrypt
 flask-login
 flask-migrate
@@ -11,7 +11,7 @@ matplotlib
 pandas
 plaid-python
 requests
-sqlalchemy<2
+sqlalchemy
 toolz
-werkzeug<3  # pinned for flask
+werkzeug<3  # pinned for flask-login
 wtforms>=3  # default HTML5 fields

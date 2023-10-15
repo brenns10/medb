@@ -357,7 +357,9 @@ def get_upi_by_id(upi_id: int):
 
 
 def get_upa_by_id(upa_id: int):
-    return UserPlaidAccount.query.options(joinedload("item")).get(upa_id)
+    return UserPlaidAccount.query.options(
+        joinedload(UserPlaidAccount.item)
+    ).get(upa_id)
 
 
 def get_plaid_transactions(
