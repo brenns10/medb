@@ -160,6 +160,7 @@ class AccountReportForm(Form):
 
     start_date = DateField("Report Start", validators=[Optional()])
     end_date = DateField("Report End", validators=[Optional()])
+    include_transfer = BooleanField("Include Transfers")
 
     def validate_end_date(self, field: Field):
         if (

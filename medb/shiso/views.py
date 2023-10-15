@@ -446,7 +446,9 @@ def account_report(account_id: int):
     transactions = get_transactions(
         account, form.start_date.data, form.end_date.data
     )
-    report = compute_transaction_report(transactions)
+    report = compute_transaction_report(
+        transactions, form.include_transfer.data
+    )
     return render_template(
         "shiso/report.html",
         account_name=account.name,
@@ -522,7 +524,9 @@ def all_account_report():
         form.start_date.data,
         form.end_date.data,
     )
-    report = compute_transaction_report(transactions)
+    report = compute_transaction_report(
+        transactions, form.include_transfer.data
+    )
     return render_template(
         "shiso/report.html",
         account_name="All Accounts",

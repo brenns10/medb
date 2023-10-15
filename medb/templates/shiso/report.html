@@ -12,9 +12,11 @@
     {{ form.end_date.label }}
     {{ form.end_date(class_="form-control") }}
     </div>
-    <div class="form-group">
-      <button class="btn btn-md btn-primary" type="submit">Compute Report</button>
+    <div class="form-check">
+      {{ form.include_transfer(class_="form-check-input") }}
+      {{ form.include_transfer.label(class_="form-check-label") }}
     </div>
+    <button class="btn btn-md btn-primary" type="submit">Compute Report</button>
   </div>
 </form>
 {% if report %}

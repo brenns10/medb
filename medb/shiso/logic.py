@@ -829,7 +829,9 @@ class TransactionReport:
     other_parent: t.Dict[str, Decimal]
 
 
-def compute_transaction_report(txns: t.List[Transaction]) -> TransactionReport:
+def compute_transaction_report(
+    txns: t.List[Transaction], include_transfer: bool
+) -> TransactionReport:
     categories_set = set()
     txns = txns[:]
     unreviewed_net = Decimal(0)
@@ -853,6 +855,8 @@ def compute_transaction_report(txns: t.List[Transaction]) -> TransactionReport:
     other_categorized = {c: Decimal(0) for c in categories}
 
     for txn in txns:
+        if txn.review.category == "Transfer" and not include_transfer:
+            continue
         all_net += txn.amount
         share_net += (
             txn.amount
