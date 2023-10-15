@@ -51,8 +51,11 @@ CATEGORIES_V2 = {
         "Other Entertainment",
     ],
     "Dining": [
-        "Lunch",
         "Coffee & Boba",
+        "Lunch",
+        "Dinner Takeout",
+        "Social Dining",
+        "Fancy Dinner",
         "Other Dining",
     ],
     "Alcohol": [
