@@ -108,6 +108,9 @@ CATEGORIES_V2 = {
     "Transfer": [
         "Transfer",
     ],
+    "ATM": [
+        "ATM",
+    ],
 }
 
 # List of leaf categories
