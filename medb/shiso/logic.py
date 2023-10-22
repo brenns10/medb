@@ -295,7 +295,9 @@ def create_item(user: User, form: LinkItemForm) -> UserPlaidItem:
 
 
 def get_item_summary(item_id: int) -> t.Optional[ItemSummary]:
-    item = UserPlaidItem.query.options(joinedload("accounts")).get(item_id)
+    item = UserPlaidItem.query.options(joinedload(UserPlaidItem.accounts)).get(
+        item_id
+    )
     if not item:
         return None
     linked_accounts = {acct.account_id for acct in item.accounts}
