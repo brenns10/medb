@@ -229,3 +229,16 @@ class TransactionBulkUpdateForm(FlaskForm):
     def validate_transactions(self, field: Field):
         if not field.data:
             raise ValidationError("No transactions selected.")
+
+
+class GenericReturnForm(FlaskForm):
+
+    return_url = HiddenField()
+
+
+class AddToGroupForm(FlaskForm):
+
+    group = SelectField(
+        "Target Group",
+        validators=[DataRequired()],
+    )

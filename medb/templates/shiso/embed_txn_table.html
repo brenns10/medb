@@ -1,4 +1,4 @@
-{% macro transaction_table(txns, include_bulk_update) %}
+{% macro transaction_table(txns, include_bulk_update, include_share, report) %}
 <div class="table-responsive">
 <table class="table table-striped table-hover">
   <thead>
@@ -11,9 +11,10 @@
         <th scope="col">Date</th>
         <th scope="col">Name / Merchant</th>
         <th scope="col">Category</th>
-        <th class="text-right" scope="col">Amount</th>
+        {% if include_share %}<th class="text-right" scope="col">Me</th> {% endif %}
         <th class="text-right" scope="col">Paige</th>
         <th class="text-right" scope="col">Other</th>
+        <th class="text-right" scope="col">Amount</th>
       </tr>
     </thead>
     <tbody>
@@ -22,6 +23,9 @@
           <td>
             {% if txn.review and include_bulk_update %}
               <input type="checkbox" onchange="setId({{txn.id}}, this.checked)" autocomplete="false" class="bulk-update-checkbox d-none"></input>
+            {% endif %}
+            {% if txn.review and txn.review.group_id %}
+              <span class="fa fa-users fa-md main-list-item-icon"></span>
             {% endif %}
             {% if txn.needs_review %}<span class="fa fa-edit fa-md main-list-item-icon"></span>{% endif %}
             {% if not txn.posted %}<span class="fa fa-hourglass-half fa-md main-list-item-icon"></span>{% endif %}
@@ -40,12 +44,95 @@
             {% endif %}
           </td>
           <td>{{txn.review.category if txn.review else "" }}</td>
-          <td class="text-right">{{txn.amount | usd}}</td>
+          {% if include_share %}
+          <td class="text-right">{{(txn.amount - txn.review.reimbursement_amount - txn.review.other_reimbursement if txn.review else 0) | usd}}</td>
+          {% endif %}
           <td class="text-right">{{(txn.review.reimbursement_amount if txn.review else 0) | usd}}</td>
           <td class="text-right">{{(txn.review.other_reimbursement if txn.review else 0) | usd}}</td>
+          <td class="text-right">{{txn.amount | usd}}</td>
         </tr>
       {% endfor %}
+      {% if report %}
+        <tr>
+          <td></td>
+          <td></td>
+          <td>Total </td>
+          <td></td>
+          {% if include_share %}
+            <td class="text-right">{{ report.share_net | usd}}</td>
+          {% endif %}
+          <td class="text-right">{{ report.reimbursed_net | usd}}</td>
+          <td class="text-right">{{ report.other_net | usd}}</td>
+          <td class="text-right">{{ report.all_net | usd}}</td>
+        </tr>
+      {% endif %}
     </tbody>
   </table>
 </div>
+{% endmacro %}
+{% macro transaction_detail(txn) %}
+  <table class="table table-striped">
+    <tbody>
+      <tr>
+        <th scope="row">Account</th>
+        <td>{{txn.account.name}}</td>
+      </tr>
+      <tr>
+        <th scope="row">Description</td>
+        <td>{{txn.name}}</td>
+      </tr>
+      {% if txn.review and txn.name != txn.review.reviewed_name and txn.review.reviewed_name is not none %}
+        <tr>
+          <th scope="row">Description (old)</th>
+          <td>{{txn.review.reviewed_name}}</td>
+        </tr>
+      {% endif %}
+      <tr>
+        <th scope="row">Merchant</th>
+        <td>{{txn.plaid_merchant_name}}</td>
+      </tr>
+      {% if txn.review and txn.plaid_merchant_name != txn.review.reviewed_plaid_merchant_name
+            and txn.review.reviewed_plaid_merchant_name is not none %}
+        <tr>
+          <th scope="row">Merchant (old)</th>
+          <td>{{txn.review.reviewed_plaid_merchant_name}}</td>
+        </tr>
+      {% endif %}
+      <tr>
+        <th scope="row">Amount</th>
+        <td>{{txn.amount | usd}}</td>
+      </tr>
+      {% if txn.review and txn.amount != txn.review.reviewed_amount and txn.review.reviewed_amount is not none %}
+        <tr>
+          <th scope="row">Amount (old)</th>
+          <td>{{txn.review.reviewed_amount | usd}}</td>
+        </tr>
+      {% endif %}
+      <tr>
+        <th scope="row">Date First Seen</th>
+        <td>{{txn.original_date}}</td>
+      </tr>
+      <tr>
+        <th scope="row">Date</th>
+        <td>{{txn.date}}</td>
+      </tr>
+      {% if txn.review and txn.date != txn.review.reviewed_date and txn.review.reviewed_date is not none %}
+        <tr>
+          <th scope="row">Date (old)</th>
+          <td>{{txn.review.reviewed_date}}</td>
+        </tr>
+      {% endif %}
+      <tr>
+        <th scope="row">Posted</th>
+        <td>{{ txn.posted | yesno }}</td>
+      </tr>
+      {% if txn.review and txn.posted != txn.review.reviewed_posted and txn.review.reviewed_posted is not none %}
+        <tr>
+          <th scope="row">Posted (old)</th>
+          <td>{{ txn.review.reviewed_posted | yesno }}</td>
+      </tr>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
 {% endmacro %}

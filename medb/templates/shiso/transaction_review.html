@@ -2,70 +2,8 @@
 {% block title %}Transaction Review{% endblock %}
 {% block content %}
   <h1>Transaction Review</h1>
-  <table class="table table-striped">
-    <tbody>
-      <tr>
-        <th scope="row">Account</th>
-        <td>{{txn.account.name}}</td>
-      </tr>
-      <tr>
-        <th scope="row">Description</td>
-        <td>{{txn.name}}</td>
-      </tr>
-      {% if txn.review and txn.name != txn.review.reviewed_name and txn.review.reviewed_name is not none %}
-        <tr>
-          <th scope="row">Description (old)</th>
-          <td>{{txn.review.reviewed_name}}</td>
-        </tr>
-      {% endif %}
-      <tr>
-        <th scope="row">Merchant</th>
-        <td>{{txn.plaid_merchant_name}}</td>
-      </tr>
-      {% if txn.review and txn.plaid_merchant_name != txn.review.reviewed_plaid_merchant_name
-            and txn.review.reviewed_plaid_merchant_name is not none %}
-        <tr>
-          <th scope="row">Merchant (old)</th>
-          <td>{{txn.review.reviewed_plaid_merchant_name}}</td>
-        </tr>
-      {% endif %}
-      <tr>
-        <th scope="row">Amount</th>
-        <td>{{txn.amount | usd}}</td>
-      </tr>
-      {% if txn.review and txn.amount != txn.review.reviewed_amount and txn.review.reviewed_amount is not none %}
-        <tr>
-          <th scope="row">Amount (old)</th>
-          <td>{{txn.review.reviewed_amount | usd}}</td>
-        </tr>
-      {% endif %}
-      <tr>
-        <th scope="row">Date First Seen</th>
-        <td>{{txn.original_date}}</td>
-      </tr>
-      <tr>
-        <th scope="row">Date</th>
-        <td>{{txn.date}}</td>
-      </tr>
-      {% if txn.review and txn.date != txn.review.reviewed_date and txn.review.reviewed_date is not none %}
-        <tr>
-          <th scope="row">Date (old)</th>
-          <td>{{txn.review.reviewed_date}}</td>
-        </tr>
-      {% endif %}
-      <tr>
-        <th scope="row">Posted</th>
-        <td>{{ txn.posted | yesno }}</td>
-      </tr>
-      {% if txn.review and txn.posted != txn.review.reviewed_posted and txn.review.reviewed_posted is not none %}
-        <tr>
-          <th scope="row">Posted (old)</th>
-          <td>{{ txn.review.reviewed_posted | yesno }}</td>
-      </tr>
-        </tr>
-      {% endif %}
-    </tbody>
-  </table>
+  {% import "shiso/embed_txn_table.html" as embed %}
+  {{ embed.transaction_detail(txn) }}
   {% if not txn.active and not txn.posted %}
     <div class="alert alert-warning" role="alert">
       This pending transaction was removed from your account!  Maybe you were
@@ -117,4 +55,35 @@
       </a>
     </div>
   </form>
+  {% if not group_members and not group_txn %}
+  <form  method="POST" action="{{ url_for('.create_transaction_group', txn_id=txn.id) }}">
+    {{ retform.csrf_token }}
+    {{ retform.return_url }}
+    <div class="form-group">
+      <button class="btn btn-lg btn-secondary", type="submit">Create Group</button>
+      <a class="btn btn-lg btn-info"
+         href="{{url_for('.group_add', txn_id=txn.id)}}">
+        Add to Group
+      </a>
+    </div>
+  </form>
+  {% else %}
+  <form method="POST" action="{{ url_for('.remove_from_group_view', txn_id=txn.id) }}">
+    {{ retform.csrf_token }}
+    {{ retform.return_url }}
+    <div class="form-group">
+      <button class="btn btn-lg btn-warning", type="submit">Remove from Group</button>
+    </div>
+  </form>
+  {% endif %}
+  {% if group_members %}
+    <h2>Transaction Group</h2>
+    {% import "shiso/embed_txn_table.html" as embed %}
+    {{ embed.transaction_table(group_members, False, True, group_report)}}
+  {% elif group_txn %}
+    Part of transaction group:
+    <a href="{{url_for('.global_review_transaction', txn_id=group_txn.id)}}">
+      {{ group_txn.name }}
+    </a>
+  {% endif %}
 {% endblock %}

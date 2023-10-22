@@ -41,6 +41,7 @@ from .models import CATEGORY_PARENT_V2
 from .models import PaymentChannel
 from .models import Subscription
 from .models import Transaction
+from .models import TransactionGroup
 from .models import TransactionReview
 from .models import UserPlaidAccount
 from .models import UserPlaidItem
@@ -1168,3 +1169,51 @@ def guess_category(txn: Transaction) -> t.Optional[str]:
         return None
     category_counter = Counter(t.review.category for t in similar)
     return category_counter.most_common(1)[0][0]
+
+
+def convert_to_group(rev: TransactionReview):
+    if rev.group_id:
+        raise Exception("Already a part of a transaction group")
+    group = TransactionGroup()
+    group.leader_id = rev.id
+    db.session.add(group)
+    db.session.commit()
+    rev.group_id = group.id
+    db.session.add(group)
+    db.session.commit()
+    db.session.commit()
+    return group
+
+
+def remove_from_group(rev: TransactionReview):
+    if rev.group_id:
+        group = rev.group
+        num_members = len(group.members)
+        if group.leader_id == rev.id and num_members != 1:
+            raise Exception("Please remove the other transactions first")
+        rev.group_id = None
+        db.session.add(rev)
+        db.session.commit()
+        if num_members == 1:
+            db.session.delete(group)
+            db.session.commit()
+
+
+def get_transaction_groups(user):
+    return (
+        TransactionGroup.query.join(
+            TransactionReview,
+            TransactionGroup.leader_id == TransactionReview.id,
+        )
+        .join(Transaction)
+        .join(UserPlaidAccount)
+        .join(UserPlaidItem)
+        .filter(UserPlaidItem.user_id == user.id)
+        .all()
+    )
+
+
+def add_to_group(rev: TransactionReview, group: TransactionGroup):
+    rev.group_id = group.id
+    db.session.add(rev)
+    db.session.commit()

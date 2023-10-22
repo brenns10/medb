@@ -15,7 +15,7 @@
   </div>
 </form>
 {% import "shiso/embed_txn_table.html" as embed %}
-{{ embed.transaction_table(txns, True) }}
+{{ embed.transaction_table(txns, True, False, None) }}
 {% endblock %}
 {% block body_js %}
   <script type="text/javascript">

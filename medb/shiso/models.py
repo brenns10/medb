@@ -255,6 +255,23 @@ class Transaction(Model):
     )
 
 
+class TransactionGroup(Model):
+    __tablename__ = "transaction_group"
+
+    id = Column(Integer, primary_key=True)
+
+    leader_id = Column(
+        Integer,
+        ForeignKey("transaction_review.id"),
+        nullable=False,
+        unique=True,
+    )
+    leader = db.relationship(
+        "TransactionReview",
+        foreign_keys=[leader_id],
+    )
+
+
 class TransactionReview(Model):
     __tablename__ = "transaction_review"
 
@@ -284,6 +301,19 @@ class TransactionReview(Model):
         onupdate=utcnow,
     )
 
+    group_id = Column(
+        Integer,
+        ForeignKey("transaction_group.id"),
+        nullable=True,
+        unique=False,
+    )
+    group = db.relationship(
+        "TransactionGroup",
+        backref=db.backref("members", uselist=True),
+        foreign_keys=[group_id],
+        lazy=True,
+    )
+
     reviewed_amount = Column(SafeNumeric(16, 3), nullable=True)
     reviewed_posted = Column(Boolean, nullable=True)
     reviewed_name = Column(String, nullable=True)
@@ -299,6 +329,11 @@ class TransactionReview(Model):
         db.UniqueConstraint(
             "transaction_id",
             name="transaction_review__transaction_id__unique",
+        ),
+        db.ForeignKeyConstraint(
+            ["group_id"],
+            ["transaction_group.id"],
+            name="transaction_review__fk_group_id",
         ),
     )
 

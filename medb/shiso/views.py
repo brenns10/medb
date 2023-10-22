@@ -19,6 +19,8 @@ from markupsafe import Markup
 
 from .forms import AccountRenameForm
 from .forms import AccountReportForm
+from .forms import AddToGroupForm
+from .forms import GenericReturnForm
 from .forms import LinkAccountForm
 from .forms import LinkItemForm
 from .forms import SubscriptionReviewForm
@@ -26,7 +28,9 @@ from .forms import SyncAccountForm
 from .forms import TransactionBulkUpdateForm
 from .forms import TransactionListForm
 from .forms import TransactionReviewForm
+from .logic import add_to_group
 from .logic import compute_transaction_report
+from .logic import convert_to_group
 from .logic import create_item
 from .logic import do_bulk_transaction_update
 from .logic import get_all_user_transactions
@@ -37,6 +41,7 @@ from .logic import get_next_unreviewed_transaction
 from .logic import get_plaid_items
 from .logic import get_subscriptions_transactions
 from .logic import get_transaction
+from .logic import get_transaction_groups
 from .logic import get_transactions
 from .logic import get_upa_by_id
 from .logic import get_upi_by_id
@@ -47,6 +52,7 @@ from .logic import link_account
 from .logic import plaid_new_item_link_token
 from .logic import plaid_sandbox_reset_login
 from .logic import plaid_update_item_link_token
+from .logic import remove_from_group
 from .logic import review_deleted_transaction
 from .logic import review_transaction as do_review_transaction
 from .logic import sync_account
@@ -305,6 +311,24 @@ def review_transaction(txn_id: int, acct: bool):
     dest = (
         ".account_review_transaction" if acct else ".global_review_transaction"
     )
+    retform = GenericReturnForm(return_url=url_for(dest, txn_id=txn_id))
+    is_group_leader = False
+    group_members = []
+    group_txn = None
+    group_report = None
+    if txn.review and txn.review.group:
+        group = txn.review.group
+        # When this is the leader of a transaction group, fetch the others to
+        # display
+        if group.leader_id == txn.review.id:
+            group_members = group.members
+            group_report = compute_transaction_report(
+                [r.transaction for r in group_members],
+                include_transfer=True,
+            )
+            is_group_leader = True
+        else:
+            group_txn = group.leader.transaction
     if request.method == "GET":
         cat = guess_category(txn)
         form = TransactionReviewForm.create(txn, None, category_guess=cat)
@@ -313,6 +337,11 @@ def review_transaction(txn_id: int, acct: bool):
             form=form,
             txn=txn,
             dest=dest,
+            retform=retform,
+            group_members=[m.transaction for m in group_members],
+            group_report=group_report,
+            group_txn=group_txn,
+            is_group_leader=is_group_leader,
         )
     if not txn.active:
         # Inactive transactions don't have the full form rendered or used. Don't
@@ -327,6 +356,11 @@ def review_transaction(txn_id: int, acct: bool):
                 form=form,
                 dest=dest,
                 txn=txn,
+                retform=retform,
+                group_members=group_members,
+                group_report=group_report,
+                group_txn=group_txn,
+                is_group_leader=is_group_leader,
             )
         do_review_transaction(txn, form)
     if acct:
@@ -358,6 +392,86 @@ def account_review_transaction(txn_id: int):
 @login_required
 def global_review_transaction(txn_id: int):
     return review_transaction(txn_id, False)
+
+
+@blueprint.route("/transaction/<int:txn_id>/create-group/", methods=["POST"])
+@login_required
+def create_transaction_group(txn_id: int):
+    txn = _view_fetch_transaction(txn_id)
+    form = GenericReturnForm(request.form)
+    return_url = url_for(".global_review_transaction", txn_id=txn_id)
+    if not form.validate_on_submit():
+        flash_errors(form, "danger")
+        return redirect(return_url)
+    if form.return_url.data:
+        return_url = form.return_url.data
+    if not txn.review:
+        flash("Please review the transaction first!", "danger")
+        return redirect(return_url)
+    rev = txn.review
+    if rev.group_id is not None:
+        flash("This transaction is already part of a group!", "danger")
+        return redirect(return_url)
+    convert_to_group(rev)
+    flash(
+        "Success, visit other transactions to add them to this group.", "info"
+    )
+    return redirect(return_url)
+
+
+@blueprint.route(
+    "/transaction/<int:txn_id>/remove-from-group/", methods=["POST"]
+)
+@login_required
+def remove_from_group_view(txn_id: int):
+    txn = _view_fetch_transaction(txn_id)
+    form = GenericReturnForm(request.form)
+    return_url = url_for(".global_review_transaction", txn_id=txn_id)
+    if not form.validate_on_submit():
+        flash_errors(form, "danger")
+        return redirect(return_url)
+    if form.return_url.data:
+        return_url = form.return_url.data
+    if not txn.review:
+        flash("The transaction is not reviewed.", "danger")
+        return redirect(return_url)
+    rev = txn.review
+    if rev.group_id is None:
+        flash("The transaction is not part of a group.", "danger")
+        return redirect(return_url)
+    if rev.group.leader_id == rev.id and len(rev.group.members) != 1:
+        flash("Please remove other transactions before the leader.", "danger")
+        return redirect(return_url)
+    remove_from_group(rev)
+    flash("Success, removed from group.", "info")
+    return redirect(return_url)
+
+
+@blueprint.route(
+    "/transaction/<int:txn_id>/add-to-group/", methods=["GET", "POST"]
+)
+@login_required
+def group_add(txn_id: int):
+    txn = _view_fetch_transaction(txn_id)
+    groups = [
+        (g.leader.transaction.id, g.leader.transaction.name)
+        for g in get_transaction_groups(current_user)
+    ]
+    form = AddToGroupForm(request.form)
+    form.group.choices = groups
+    if form.validate_on_submit():
+        print(form.group.data)
+        target_txn = _view_fetch_transaction(form.group.data)
+        add_to_group(txn.review, target_txn.review.group)
+        return redirect(
+            url_for(".global_review_transaction", txn_id=target_txn.id)
+        )
+    flash_errors(form, "danger")
+    return render_template(
+        "shiso/transaction_group.html",
+        txn=txn,
+        form=form,
+    )
 
 
 @blueprint.route("/transaction/bulk-update/", methods=["POST"])

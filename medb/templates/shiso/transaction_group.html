@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block title %}Add to Transaction Group{% endblock %}
+{% block content %}
+  <h1>Add to Transaction Group</h1>
+  {% import "shiso/embed_txn_table.html" as embed %}
+  {{ embed.transaction_detail(txn) }}
+  <p>You're adding the above transaction into a group. Please pick another transaction from the list below to group it with.</p>
+  <form method="POST" action="{{url_for('.group_add', txn_id=txn.id)}}">
+    {{form.csrf_token}}
+    <div class="form-group">
+      {{form.group.label}}
+      {{ form.group(class_="form-control") }}
+    </div>
+    <div class="form-group">
+      <button class="btn btn-lg btn-primary" type="submit">Add</button>
+    </div>
+  </form>
+{% endblock %}
