@@ -35,7 +35,7 @@ numpy==1.26.1
 packaging==23.2
 pandas==2.1.1
 Pillow==10.1.0
-plaid-python==16.0.0
+plaid-python==17.0.0
 prompt-toolkit==3.0.39
 pyparsing==3.1.1
 python-dateutil==2.8.2
@@ -47,7 +47,7 @@ SQLAlchemy==2.0.22
 toolz==0.12.0
 typing-extensions==4.8.0
 tzdata==2023.3
-urllib3==2.0.6
+urllib3==2.0.7
 vine==5.0.0
 wcwidth==0.2.8
 werkzeug==2.3.7
