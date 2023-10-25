@@ -13,5 +13,5 @@ plaid-python
 requests
 sqlalchemy
 toolz
-werkzeug<3  # pinned for flask-login
+werkzeug<4  # pinned for flask-login
 wtforms>=3  # default HTML5 fields
