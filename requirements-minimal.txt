@@ -1,7 +1,7 @@
 celery[librabbitmq]
 click
 environs
-flask<3  # pinned for flask-login
+flask
 flask-bcrypt
 flask-login
 flask-migrate
@@ -13,5 +13,5 @@ plaid-python
 requests
 sqlalchemy
 toolz
-werkzeug<3  # pinned for flask-login
+werkzeug
 wtforms>=3  # default HTML5 fields
