@@ -475,6 +475,7 @@ def group_add(txn_id: int):
 
 
 @blueprint.route("/transaction/bulk-update/", methods=["POST"])
+@login_required
 def bulk_update():
     print("bulk update, returning to URL:")
     print(request.form["return_url"])
