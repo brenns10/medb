@@ -222,4 +222,37 @@
     </div>
   </div>
 </div>
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <h4 class="card-title">IP Address History</h4>
+      </div>
+      <div class="card-body">
+        <p class="card-text">
+          We check the external IPv4 and IPv6 address hourly. Each time the
+          address has changed is listed here.
+        </p>
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">IPv4 Address</th>
+              <th scope="col">IPv6 Address</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ipc in iphist %}
+              <tr>
+                <td>{{ ipc.time.astimezone().strftime("%Y-%m-%d %T")}}</td>
+                <td>{{ ipc.ipv4 }}</td>
+                <td>{{ ipc.ipv6 }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

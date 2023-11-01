@@ -12,9 +12,13 @@ from flask import Blueprint
 from flask import make_response
 from flask import render_template
 from flask_login import login_required
+from sqlalchemy.orm import aliased
 from sqlalchemy.orm import Query
+from sqlalchemy.sql import or_
+from sqlalchemy.sql import select
 
 from .models import FastResult
+from .models import IpCheckResult
 from .models import PingResult
 from .models import SpeedTestResult
 from medb.extensions import db
@@ -115,6 +119,29 @@ def fast_stats() -> FastSummary:
     agg_days(30)
 
     return FastSummary(**kwargs)
+
+
+def ip_history() -> list[IpCheckResult]:
+    c1 = aliased(IpCheckResult)
+    c2 = aliased(IpCheckResult)
+    first = (
+        db.session.query(IpCheckResult)
+        .order_by(IpCheckResult.id)
+        .limit(1)
+        .one()
+    )
+    query = (
+        select(c2)
+        .where(
+            or_(
+                c2.ipv4 != c1.ipv4,
+                c2.ipv6 != c1.ipv6,
+            )
+        )
+        .join_from(c2, c1, c1.id + 1 == c2.id)
+    )
+    rows = db.session.execute(query)
+    return [first] + [r[0] for r in rows]
 
 
 @dataclass
@@ -274,6 +301,7 @@ def speedtest_results():
         st=speedtest_stats(),
         ping=ping_results(),
         fast=fast_stats(),
+        iphist=ip_history(),
     )
 
 
