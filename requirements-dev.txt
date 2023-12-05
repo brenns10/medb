@@ -34,7 +34,7 @@ jupyter-client==8.5.0
 jupyter-core==5.5.0
 jupyter-events==0.8.0
 jupyter-lsp==2.2.0
-jupyter-server==2.9.1
+jupyter-server==2.11.2
 jupyter-server-terminals==0.4.4
 jupyterlab==4.0.7
 jupyterlab-execute-time==3.0.1
