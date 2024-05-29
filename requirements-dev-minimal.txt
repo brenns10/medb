@@ -1,7 +1,0 @@
-celery[redis]
-ipympl  # Interactive matplotlib charts in Jupyter
-ipython
-jupyterlab
-jupyterlab_execute_time  # Execution time at the bottom
-jupyterlab_templates  # Use templates for creating new notebooks
-requirements-tools

@@ -330,9 +330,7 @@ echo @@@ SETUP ENV @@@
 ssh $HOST "mkdir $TAG
 cd $TAG
 tar xf ../medb-deploy.tar.gz
-python -m venv venv
-venv/bin/pip install wheel
-venv/bin/pip install -r requirements.txt
+pipenv sync
 ln -s ../.env.secret .env.secret
 sed -i 's/^MEDB_DEPLOY=.*$/MEDB_DEPLOY=$TAG/' .env
 " 2>/dev/null

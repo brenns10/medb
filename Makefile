@@ -8,14 +8,9 @@ push:
 .PHONY: upgrade upgrade-requirements
 upgrade: upgrade-requirements
 upgrade-requirements:
-	upgrade-requirements
+	pipenv update
 
-venv:
-	rm -rf venv
-	python -m venv venv
-	venv/bin/pip install -r requirements.txt -r requirements-dev.txt
-
-.PHONY: notebook
-notebook:
-	PYTHONPATH="$(shell pwd)" venv/bin/jupyter lab \
-		   --notebook-dir=notebooks --config .jupyter_lab_config.py
+.PHONY: venv
+venv: .venv
+.venv:
+	pipenv sync -d
