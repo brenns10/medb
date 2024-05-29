@@ -13,15 +13,15 @@ from pathlib import Path
 
 import requests
 
+from medb.extensions import celery
+from medb.extensions import db
+from medb.model_util import utcnow
+
 from .models import FastResult
 from .models import IpCheckResult
 from .models import PingResult
 from .models import SpeedTestResult
 from .pinger import Pinger
-from medb.extensions import celery
-from medb.extensions import db
-from medb.model_util import utcnow
-
 
 IP6CHECK = "https://ip6only.me/api/"
 IP4CHECK = "https://ip4only.me/api/"

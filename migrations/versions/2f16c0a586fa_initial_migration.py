@@ -5,8 +5,8 @@ Revises: transaction_review.transaction_id
 Create Date: 2021-11-03 20:15:44.345622
 
 """
-from alembic import op
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "2f16c0a586fa"

@@ -5,11 +5,11 @@ Revises: ac84aec426a6
 Create Date: 2021-11-04 00:20:25.132214
 
 """
+
 import sqlalchemy as sa
 from alembic import op
 
 import medb.shiso.models
-
 
 # revision identifiers, used by Alembic.
 revision = "53509453132a"

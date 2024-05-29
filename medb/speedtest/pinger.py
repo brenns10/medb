@@ -8,7 +8,6 @@ import struct
 import time
 import typing as t
 
-
 ICMP_ECHO_HDR = "!BBHHH"
 ECHO_V4 = 8
 ECHO_V6 = 128

@@ -5,8 +5,8 @@ from datetime import date
 from decimal import Decimal
 
 import click
-from flask import abort
 from flask import Blueprint
+from flask import abort
 from flask import flash
 from flask import redirect
 from flask import render_template
@@ -16,6 +16,9 @@ from flask import url_for
 from flask_login import current_user
 from flask_login import login_required
 from markupsafe import Markup
+
+from medb.extensions import db
+from medb.utils import flash_errors
 
 from .forms import AccountRenameForm
 from .forms import AccountReportForm
@@ -28,6 +31,8 @@ from .forms import SyncAccountForm
 from .forms import TransactionBulkUpdateForm
 from .forms import TransactionListForm
 from .forms import TransactionReviewForm
+from .logic import ItemSummary
+from .logic import UpdateLink
 from .logic import add_to_group
 from .logic import compute_transaction_report
 from .logic import convert_to_group
@@ -47,7 +52,6 @@ from .logic import get_upa_by_id
 from .logic import get_upi_by_id
 from .logic import guess_category
 from .logic import initial_sync
-from .logic import ItemSummary
 from .logic import link_account
 from .logic import plaid_new_item_link_token
 from .logic import plaid_sandbox_reset_login
@@ -56,13 +60,10 @@ from .logic import remove_from_group
 from .logic import review_deleted_transaction
 from .logic import review_transaction as do_review_transaction
 from .logic import sync_account
-from .logic import UpdateLink
 from .models import CATEGORIES_V2
 from .models import Subscription
 from .models import Transaction
 from .models import UserPlaidAccount
-from medb.extensions import db
-from medb.utils import flash_errors
 
 blueprint = Blueprint(
     "shiso", __name__, url_prefix="/shiso", static_folder="../static"

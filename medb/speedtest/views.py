@@ -12,17 +12,18 @@ from flask import Blueprint
 from flask import make_response
 from flask import render_template
 from flask_login import login_required
-from sqlalchemy.orm import aliased
 from sqlalchemy.orm import Query
+from sqlalchemy.orm import aliased
 from sqlalchemy.sql import or_
 from sqlalchemy.sql import select
+
+from medb.extensions import db
+from medb.model_util import utcnow
 
 from .models import FastResult
 from .models import IpCheckResult
 from .models import PingResult
 from .models import SpeedTestResult
-from medb.extensions import db
-from medb.model_util import utcnow
 
 matplotlib.use("agg")
 matplotlib.style.use("ggplot")

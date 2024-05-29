@@ -5,11 +5,11 @@ Revises: 095a817a8431
 Create Date: 2022-11-12 19:38:01.533172
 
 """
+
 import sqlalchemy as sa
 from alembic import op
 
 from medb.model_util import SafeNumeric
-
 
 # revision identifiers, used by Alembic.
 revision = "d383714f967b"

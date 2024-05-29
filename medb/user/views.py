@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Public section, including homepage and signup."""
-from flask import abort
 from flask import Blueprint
+from flask import abort
 from flask import current_app
 from flask import flash
 from flask import redirect

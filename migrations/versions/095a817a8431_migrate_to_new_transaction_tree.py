@@ -5,6 +5,7 @@ Revises: 2204b9aa0cfe
 Create Date: 2022-11-12 11:31:52.791006
 
 """
+
 import typing as t
 
 import sqlalchemy as sa

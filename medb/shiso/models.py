@@ -20,7 +20,6 @@ from medb.model_util import SafeNumeric
 from medb.model_util import TZDateTime
 from medb.model_util import utcnow
 
-
 CATEGORIES_V1 = [
     "Transport",
     "Entertainment",

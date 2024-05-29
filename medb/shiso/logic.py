@@ -34,6 +34,12 @@ from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 from toolz import keyfilter
 
+from medb.extensions import db
+from medb.settings import PLAID_CLIENT_ID
+from medb.settings import PLAID_ENV
+from medb.settings import PLAID_SECRET
+from medb.user.models import User
+
 from .forms import LinkItemForm
 from .forms import TransactionReviewForm
 from .models import CATEGORIES_V2
@@ -45,12 +51,6 @@ from .models import TransactionGroup
 from .models import TransactionReview
 from .models import UserPlaidAccount
 from .models import UserPlaidItem
-from medb.extensions import db
-from medb.settings import PLAID_CLIENT_ID
-from medb.settings import PLAID_ENV
-from medb.settings import PLAID_SECRET
-from medb.user.models import User
-
 
 SUPPORTED_TYPES = {
     ("credit", "credit card"),
