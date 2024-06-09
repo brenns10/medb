@@ -17,6 +17,7 @@ from typing import Dict
 from typing import List
 
 import plaid
+import sqlalchemy
 from plaid.api import plaid_api
 from plaid.models import AccountsGetRequest
 from plaid.models import CountryCode
@@ -1218,4 +1219,88 @@ def get_transaction_groups(user):
 def add_to_group(rev: TransactionReview, group: TransactionGroup):
     rev.group_id = group.id
     db.session.add(rev)
+    db.session.commit()
+
+
+def dangerous_delete_account(account_id: int) -> None:
+    """
+    Delete all transactions from an account and remove it.
+
+    This is tricky because we have several tables which have foreign key
+    constraints. Transactions have reviews, and the review object may be a
+    member of a transaction group. Then, transactions may also be part of a
+    subscription. Graphically:
+
+    User <- Item <- Account <- Transaction <- Review <-> Group
+                     ^-- Subscription <-|
+
+    Since transaction reviews from multiple accounts can participate in a group,
+    and we don't know how many members a group has, we can't delete the group.
+    """
+    # Get groups led by transactions in this account
+    groups = {
+        g.id
+        for g in TransactionGroup.query.join(
+            TransactionReview,
+            TransactionGroup.leader_id == TransactionReview.id,
+        )
+        .join(Transaction)
+        .filter(Transaction.account_id == account_id)
+        .all()
+    }
+
+    reviews = {
+        r.id
+        for r in TransactionReview.query.join(Transaction).filter(
+            Transaction.account_id == account_id
+        )
+    }
+
+    # Update transactions to no longer refer to this group
+    print("Removing transaction group references...")
+    db.session.execute(
+        sqlalchemy.update(TransactionReview)
+        .where(TransactionReview.group_id.in_(groups))
+        .values(group_id=None)
+    )
+
+    print("Removing transaction groups...")
+    db.session.execute(
+        sqlalchemy.delete(TransactionGroup).where(
+            TransactionGroup.id.in_(groups)
+        )
+    )
+
+    print("Removing subscription references...")
+    db.session.execute(
+        sqlalchemy.update(Transaction)
+        .where(Transaction.account_id == account_id)
+        .values(subscription_id=None)
+    )
+
+    print("Removing subscriptions...")
+    db.session.execute(
+        sqlalchemy.delete(Subscription).where(
+            Subscription.account_id == account_id
+        )
+    )
+
+    print("Removing transaction reviews...")
+    db.session.execute(
+        sqlalchemy.delete(TransactionReview).where(
+            TransactionReview.id.in_(reviews)
+        )
+    )
+    print("Removing transactions...")
+    db.session.execute(
+        sqlalchemy.delete(Transaction).where(
+            Transaction.account_id == account_id
+        )
+    )
+    print("Removing account...")
+    db.session.execute(
+        sqlalchemy.delete(UserPlaidAccount).where(
+            UserPlaidAccount.id == account_id
+        )
+    )
     db.session.commit()

@@ -18,6 +18,7 @@ from flask_login import login_required
 from markupsafe import Markup
 
 from medb.extensions import db
+from medb.user.models import User
 from medb.utils import flash_errors
 
 from .forms import AccountRenameForm
@@ -37,6 +38,7 @@ from .logic import add_to_group
 from .logic import compute_transaction_report
 from .logic import convert_to_group
 from .logic import create_item
+from .logic import dangerous_delete_account
 from .logic import do_bulk_transaction_update
 from .logic import get_all_user_transactions
 from .logic import get_item_summary
@@ -719,6 +721,26 @@ def subscription_list():
         reviewed_subs=reviewed_subs,
         untracked_subs=untracked_subs,
     )
+
+
+@blueprint.cli.command("delete-account")
+@click.argument("account_id", type=int)
+def clear_data(account_id):
+    dangerous_delete_account(account_id)
+
+
+@blueprint.cli.command("delete-all-data")
+@click.argument("user", type=str)
+def clear_user_data(user: str) -> None:
+    u = User.query.filter(User.username == user).one()
+    items = get_plaid_items(u)
+    for item in items:
+        print(f"Deleting item: {item.institution_name}")
+        accounts = list(item.accounts)
+        for account in accounts:
+            dangerous_delete_account(account.id)
+        db.session.delete(item)
+        db.session.commit()
 
 
 @blueprint.cli.command("reset-item-login")
