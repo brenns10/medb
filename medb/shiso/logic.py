@@ -197,6 +197,8 @@ def plaid_client() -> plaid_api.PlaidApi:
         plaid_env = plaid.Environment.Sandbox
     elif PLAID_ENV == "development":
         plaid_env = plaid.Environment.Development
+    elif PLAID_ENV == "production":
+        plaid_env = plaid.Environment.Production
     else:
         assert False, "Plaid environment invalid"
     configuration = plaid.Configuration(
