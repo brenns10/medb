@@ -170,6 +170,7 @@ class PlaidAccount:
     subtype: str
     official_name: t.Optional[str] = None
     verification_status: t.Optional[str] = None
+    persistent_account_id: t.Optional[str] = None
 
     @classmethod
     def from_json_dict(cls, json_dict):
