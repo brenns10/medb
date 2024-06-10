@@ -52,6 +52,7 @@ from .models import TransactionGroup
 from .models import TransactionReview
 from .models import UserPlaidAccount
 from .models import UserPlaidItem
+from .models import UserSettings
 
 SUPPORTED_TYPES = {
     ("credit", "credit card"),
@@ -1307,3 +1308,14 @@ def dangerous_delete_account(account_id: int) -> None:
         )
     )
     db.session.commit()
+
+
+def get_user_settings(user: User) -> UserSettings:
+    setting = UserSettings.query.filter(
+        UserSettings.user_id == user.id
+    ).one_or_none()
+    if setting is None:
+        setting = UserSettings(user_id=user.id)
+        db.session.add(setting)
+        db.session.commit()
+    return setting

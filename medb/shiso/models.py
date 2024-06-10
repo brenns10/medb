@@ -374,3 +374,18 @@ class Subscription(Model):
         "UserPlaidAccount",
         backref=db.backref("subscriptions", lazy="select"),
     )
+
+
+class UserSettings(Model):
+    """
+    Per-user settings
+    """
+
+    __tablename__ = "user_shiso_settings"
+
+    id = Column(Integer, primary_key=True)
+
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    user = db.relationship("User")
+
+    scheduled_sync = Column(Boolean, nullable=False, default=False)

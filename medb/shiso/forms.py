@@ -242,3 +242,8 @@ class AddToGroupForm(FlaskForm):
         "Target Group",
         validators=[DataRequired()],
     )
+
+
+class UserSettingsForm(FlaskForm):
+
+    scheduled_sync = BooleanField("Enable Scheduled Sync")

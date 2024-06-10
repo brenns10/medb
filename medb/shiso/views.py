@@ -32,6 +32,7 @@ from .forms import SyncAccountForm
 from .forms import TransactionBulkUpdateForm
 from .forms import TransactionListForm
 from .forms import TransactionReviewForm
+from .forms import UserSettingsForm
 from .logic import ItemSummary
 from .logic import UpdateLink
 from .logic import add_to_group
@@ -52,6 +53,7 @@ from .logic import get_transaction_groups
 from .logic import get_transactions
 from .logic import get_upa_by_id
 from .logic import get_upi_by_id
+from .logic import get_user_settings
 from .logic import guess_category
 from .logic import initial_sync
 from .logic import link_account
@@ -720,6 +722,20 @@ def subscription_list():
         new_subs=new_subs,
         reviewed_subs=reviewed_subs,
         untracked_subs=untracked_subs,
+    )
+
+
+@blueprint.route("/settings/", methods=["GET", "POST"])
+@login_required
+def settings():
+    settings = get_user_settings(current_user)
+    form = UserSettingsForm(obj=settings)
+    if form.validate_on_submit():
+        form.populate_obj(settings)
+        settings.save()
+    return render_template(
+        "shiso/settings.html",
+        form=form,
     )
 
 
