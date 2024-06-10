@@ -1,0 +1,45 @@
+<html>
+  <head></head>
+  <body>
+    <p>
+      {% if user.first_name %}Hello {{user.first_name}},{% else %}Hello,{% endif %}
+    </p>
+    <p>
+      Your regularly scheduled transaction sync has found new transactions.
+      <a href="{{url_for('shiso.global_review')}}">Review them now!</a>
+      Below is a summary of what happened.
+    </p>
+    {% if results %}
+      <table>
+        <thead>
+          <tr>
+            <th>Account</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for result in results %}
+            <tr>
+              <td>{{result.account.name}}</td>
+              <td>{{result.summarize()}}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+    {% if errors %}
+      <p><b>Errors:</b></p>
+      <ul>
+        {% for error in errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+      <p>
+        Please note that due to the errors, your scheduled sync has been
+        disabled. Rectify the errors and then re-enable them on your user
+        settings.
+      </p>
+    {% endif %}
+    <p>Thank you,<br>Shiso</p>
+  </body>
+</html>

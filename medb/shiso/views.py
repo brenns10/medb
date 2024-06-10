@@ -63,6 +63,7 @@ from .logic import plaid_update_item_link_token
 from .logic import remove_from_group
 from .logic import review_deleted_transaction
 from .logic import review_transaction as do_review_transaction
+from .logic import scheduled_sync
 from .logic import sync_account
 from .models import CATEGORIES_V2
 from .models import Subscription
@@ -765,6 +766,11 @@ def reset_item_login(item_id):
     item = get_upi_by_id(item_id)
     assert item
     plaid_sandbox_reset_login(item)
+
+
+@blueprint.cli.command("scheduled-sync")
+def do_scheduled_sync() -> None:
+    scheduled_sync()
 
 
 @blueprint.app_template_filter("usd")

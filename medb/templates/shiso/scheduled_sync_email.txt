@@ -1,0 +1,26 @@
+{% if user.first_name %}Hello {{user.first_name}},{% else %}Hello,{% endif %}
+
+Your regularly scheduled transaction sync has found new transactions.
+Use the link below to review them now!
+
+{{url_for('shiso.global_review')}}
+
+Below is a summary of what happened.
+
+{% if results %}Results:
+{% for result in results %}
+Account: {{result.account.name}}
+{{result.summarize()}}
+{%endfor%}{%endif%}{% if errors %}
+
+Errors:
+
+{% for error in errors %}- {{error}}
+{% endfor %}
+
+Please note that due to the errors, your scheduled sync has been disabled.
+Please rectify them, and then re-enable the scheduled sync in your profile
+settings.{% endif %}
+
+Thank you,
+Shiso

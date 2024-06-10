@@ -124,4 +124,9 @@ def register_periodic_tasks():
             "schedule": crontab(hour=9, minute=0),
             "args": (),
         },
+        "shiso_scheduled_sync": {
+            "task": "medb.shiso.tasks.run_scheduled_sync",
+            "schedule": crontab(hour=8, minute=0),
+            "args": (),
+        },
     }

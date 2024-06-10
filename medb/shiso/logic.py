@@ -40,6 +40,7 @@ from medb.settings import PLAID_CLIENT_ID
 from medb.settings import PLAID_ENV
 from medb.settings import PLAID_SECRET
 from medb.user.models import User
+from medb.utils import send_email
 
 from .forms import LinkItemForm
 from .forms import TransactionReviewForm
@@ -437,6 +438,15 @@ class SyncReport:
     updated_plaid_merchant_name: int = 0
 
     new_subscriptions: int = 0
+
+    def has_changes(self) -> bool:
+        return (
+            self.new
+            or self.updated
+            or self.rereview
+            or self.missing_pending
+            or self.missing_posted
+        )
 
     def summarize(self) -> str:
         s = (
@@ -1319,3 +1329,64 @@ def get_user_settings(user: User) -> UserSettings:
         db.session.add(setting)
         db.session.commit()
     return setting
+
+
+def scheduled_sync(fake_error: t.Optional[str] = None):
+    """
+    Run the global scheduled sync.
+
+    In reality, this is not so global since there's generally just one user :D
+    But I like to pretend like I'm writing code that could run in the "real
+    world" with real users.
+
+    This is a "batch job" which iterates over each user that has scheduled syncs
+    enabled. It runs the sync and then emails the result. For users with errors,
+    the sync is disabled.
+    """
+    for settings in UserSettings.query.filter(
+        UserSettings.scheduled_sync
+    ).all():
+        user = settings.user
+        results = []
+        errors = []
+        has_changes = False
+
+        print(f"Scheduled sync for {user.username}")
+
+        for item in get_plaid_items(user):
+            for account in item.accounts:
+                if account.sync_start:
+                    try:
+                        result = sync_account(account)
+                        results.append(result)
+                        has_changes = has_changes or result.has_changes()
+                    except UpdateLink:
+                        errors.append(
+                            f"Account {account.name} needs to be reauthenticated"
+                        )
+                else:
+                    errors.append(
+                        f"Account {account.name} needs an initial sync"
+                    )
+
+        if fake_error:
+            errors.append(fake_error)
+
+        subject = "Scheduled sync completed"
+        if errors:
+            subject += " with errors"
+            settings.scheduled_sync = False
+            settings.save()
+
+        if not errors and not has_changes:
+            print("Skipping email due to a dull update")
+            continue
+
+        send_email(
+            subject,
+            user.email,
+            "shiso/scheduled_sync_email",
+            user=user,
+            results=results,
+            errors=errors,
+        )
