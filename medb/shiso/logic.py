@@ -1360,6 +1360,7 @@ def scheduled_sync(fake_error: t.Optional[str] = None):
                         result = sync_account(account)
                         results.append(result)
                         has_changes = has_changes or result.has_changes()
+                        print(f"Changes: {has_changes} | {result.summarize()}")
                     except UpdateLink:
                         errors.append(
                             f"Account {account.name} needs to be reauthenticated"
@@ -1377,10 +1378,8 @@ def scheduled_sync(fake_error: t.Optional[str] = None):
             subject += " with errors"
             settings.scheduled_sync = False
             settings.save()
-
-        if not errors and not has_changes:
-            print("Skipping email due to a dull update")
-            continue
+        if not has_changes:
+            subject += " (no changes)"
 
         send_email(
             subject,
