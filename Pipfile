@@ -25,6 +25,7 @@ wtforms = ">=3"
 [dev-packages]
 cryptography = "*"  # used for flask SSL in dev
 celery = {extras = ["redis"], version = "*"}
+python-lsp-server = "*"
 
 [requires]
 python_version = "3.12"
