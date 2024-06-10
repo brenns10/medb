@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "5b2efbf3356e0fa83aec59ab06e15b679b189e55e5f9c2ee558776d46136e320"
+            "sha256": "5b7bd68480c3e1fe50029ac0fb86e1cf969df621f279945d8bf85499a8e06616"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -80,6 +80,14 @@
             ],
             "markers": "python_version >= '3.8'",
             "version": "==1.8.2"
+        },
+        "bootstrap-flask": {
+            "hashes": [
+                "sha256:3f7aa1b8be31e182fa2eaff2580e9b66aa9fad14f1a35e5c03d486169fb6c1a1",
+                "sha256:bd5084bcb1557e85db799aa9d70b153cb13a3895ea871603dbf242cd05894b90"
+            ],
+            "index": "pypi",
+            "version": "==2.4.0"
         },
         "celery": {
             "extras": [

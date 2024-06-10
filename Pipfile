@@ -21,6 +21,7 @@ sqlalchemy = "*"
 toolz = "*"
 werkzeug = "*"
 wtforms = ">=3"
+bootstrap-flask = "*"
 
 [dev-packages]
 cryptography = "*"  # used for flask SSL in dev

@@ -18,6 +18,7 @@ import medb.user.models  # noqa
 import medb.user.views
 from medb import public
 from medb.extensions import bcrypt
+from medb.extensions import bootstrap
 from medb.extensions import celery
 from medb.extensions import csrf_protect
 from medb.extensions import db
@@ -45,6 +46,7 @@ def create_app(config_object="medb.settings"):
 def register_extensions(app):
     """Register Flask extensions."""
     bcrypt.init_app(app)
+    bootstrap.init_app(app)
     db.init_app(app)
     if os.environ.get("MIGRATE_BATCH"):
         migrate.init_app(app, db, render_as_batch=True)
