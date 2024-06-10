@@ -15,6 +15,7 @@ from wtforms.fields import RadioField
 from wtforms.fields import SelectField
 from wtforms.fields import SelectMultipleField
 from wtforms.fields import StringField
+from wtforms.fields import SubmitField
 from wtforms.form import Form
 from wtforms.validators import DataRequired
 from wtforms.validators import Optional
@@ -247,3 +248,4 @@ class AddToGroupForm(FlaskForm):
 class UserSettingsForm(FlaskForm):
 
     scheduled_sync = BooleanField("Enable Scheduled Sync")
+    submit = SubmitField("Submit")

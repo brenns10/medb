@@ -1,18 +1,8 @@
+{% from 'bootstrap4/form.html' import render_form %}
 {% extends "layout.html" %}
 {% block title %}Shiso Settings{% endblock %}
 {% block content %}
 <h1>Shiso - Settings</h1>
 <p><a href="{{url_for('.home')}}">Home</a></p>
-<form method="POST" action="{{url_for('.settings')}}">
-  {{form.csrf_token}}
-  <div class="form-group">
-    <div class="form-check">
-      {{ form.scheduled_sync(class_="form-input") }}
-      {{ form.scheduled_sync.label(class_="form-check-label") }}
-    </div>
-  </div>
-  <div class="form-group">
-    <button class="btn btn-lg btn-primary" type="submit">Submit</button>
-  </div>
-</form>
+{{render_form(form)}}
 {% endblock %}

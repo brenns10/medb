@@ -734,6 +734,7 @@ def settings():
     if form.validate_on_submit():
         form.populate_obj(settings)
         settings.save()
+        flash("Updated!", "success")
     return render_template(
         "shiso/settings.html",
         form=form,
