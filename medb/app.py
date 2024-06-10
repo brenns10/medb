@@ -128,7 +128,8 @@ def register_periodic_tasks():
         },
         "shiso_scheduled_sync": {
             "task": "medb.shiso.tasks.run_scheduled_sync",
-            "schedule": crontab(hour=8, minute=0),
+            # This is UTC. Would be 8am PDT, 7am PST.
+            "schedule": crontab(hour=15, minute=0),
             "args": (),
         },
     }
