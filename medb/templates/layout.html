@@ -43,6 +43,7 @@ body {
         <div class="my-2 my-md-0">
           <ul class="navbar-nav mr-auto">
             {% if current_user.is_authenticated %}
+              {{ navlink(url_for('user.user_info'), "Settings") }}
               {{ navlink(url_for('user.logout'), "Log out " + current_user.username) }}
             {% endif %}
           </ul>

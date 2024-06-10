@@ -1,0 +1,11 @@
+{% from 'bootstrap4/form.html' import render_form %}
+{% extends "layout.html" %}
+{% block title %}User Info{% endblock %}
+{% block content %}
+<h1>User Settings</h1>
+<ul>
+  <li>Username: {{user.username}}</li>
+  <li>Email: {{user.email}}</li>
+</ul>
+{{ render_form(form) }}
+{% endblock %}

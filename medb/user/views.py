@@ -14,9 +14,11 @@ from flask_login import login_user
 from flask_login import logout_user
 
 from medb.extensions import login_manager
-from medb.user.forms import LoginForm
-from medb.user.models import User
 from medb.utils import flash_errors
+
+from .forms import LoginForm
+from .forms import UserDetailsUpdateForm
+from .models import User
 
 blueprint = Blueprint(
     "user", __name__, url_prefix="/users", static_folder="../static"
@@ -63,6 +65,22 @@ def logout():
     flash("You are logged out.", "info")
     # TODO better goodbye page
     return redirect(url_for("public.home"))
+
+
+@blueprint.route("/info/", methods=["GET", "POST"])
+@login_required
+def user_info():
+    """User info."""
+    form = UserDetailsUpdateForm(obj=current_user)
+    if form.validate_on_submit():
+        form.populate_obj(current_user)
+        current_user.save()
+        flash("Updated!", "success")
+    return render_template(
+        "user/info.html",
+        user=current_user,
+        form=form,
+    )
 
 
 @blueprint.route("/500/")

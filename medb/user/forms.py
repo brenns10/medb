@@ -4,6 +4,7 @@ from flask_wtf import FlaskForm
 from wtforms import BooleanField
 from wtforms import PasswordField
 from wtforms import StringField
+from wtforms import SubmitField
 from wtforms.validators import DataRequired
 
 from medb.user.models import User
@@ -37,3 +38,10 @@ class LoginForm(FlaskForm):
             return False
 
         return True
+
+
+class UserDetailsUpdateForm(FlaskForm):
+
+    first_name = StringField("First Name")
+    last_name = StringField("Last Name")
+    submit = SubmitField("Submit")
