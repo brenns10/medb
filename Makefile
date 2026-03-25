@@ -8,9 +8,9 @@ push:
 .PHONY: upgrade upgrade-requirements
 upgrade: upgrade-requirements
 upgrade-requirements:
-	pipenv update
+	uv lock
 
 .PHONY: venv
 venv: .venv
 .venv:
-	pipenv sync -d
+	uv sync

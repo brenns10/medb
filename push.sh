@@ -330,7 +330,7 @@ echo @@@ SETUP ENV @@@
 ssh $HOST "mkdir $TAG
 cd $TAG
 tar xf ../medb-deploy.tar.gz
-pipenv sync
+uv sync --no-dev
 ln -s ../.env.secret .env.secret
 sed -i 's/^MEDB_DEPLOY=.*$/MEDB_DEPLOY=$TAG/' .env
 " 2>/dev/null

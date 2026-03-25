@@ -68,12 +68,9 @@ Development
 -----------
 
 1. Make sure configuration is in place at `.env` and `.env.secret`.
-2. `python -m venv venv`
-3. `. venv/bin/activate`
-4. `pip install wheel python-lsp-server` (omit lsp server for non-dev)
-5. `pip install -r requirements.txt`
-6. `flask user setup`
-7. `flask run`
+2. `uv sync`
+3. `uv run flask public init`
+4. `uv run flask run`
 
 For testing tasks, you'll want to concurrently run:
 
