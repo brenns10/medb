@@ -3,7 +3,7 @@
 
 # Push destination details
 REGISTRY="reg.vps.brenns10.com"
-HOST=stephen@gluttony.local
+HOST=stephen@gluttony
 SERVICES="medb-web.service medb-worker.service"
 
 _name() {
@@ -50,7 +50,7 @@ DATE="$(date +%Y-%m-%d)"
 TAG="deploy-$DATE-$TAGDESC"
 
 echo @@@ BUILD IMAGE @@@
-podman build -e MEDB_DEPLOY="$TAG" -t medb:latest .
+podman build --build-arg MEDB_DEPLOY="$TAG" -t medb:latest .
 
 echo @@@ PUSH IMAGE @@@
 podman push medb:latest "$REGISTRY/medb:latest"
@@ -81,6 +81,5 @@ if ! _yesno "Certify?"; then
     exit 1
 else
     skopeo copy docker://$REGISTRY/medb:{latest,stable}
-    git tag "$TAG"
     echo Certified $TAG
 fi

@@ -12,5 +12,7 @@ RUN uv sync --locked --no-dev
 # Add project files later for speedy rebuilds
 COPY --parents ./medb/ ./migrations/ autoapp.py /app/
 
+ARG MEDB_DEPLOY
+ENV MEDB_DEPLOY=${MEDB_DEPLOY:-development}
 CMD uv run --no-dev --frozen gunicorn -w 4 -b 0.0.0.0:4000 'autoapp:app'
 # For celery: uv run --no-dev --frozen celery --app=autoapp:celery worker
