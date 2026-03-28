@@ -59,12 +59,12 @@ body {
   <footer class="footer">
     <div class="container text-center">
       <span class="text-muted">
-        {% if config.DEPLOY.startswith("deploy-") %}
-          MeDB: <a href="https://github.com/brenns10/medb/releases/tag/{{config.DEPLOY}}">{{config.DEPLOY}}</a>
+        {% if config.DEPLOY_SHA %}
+          MeDB: <a href="https://github.com/brenns10/medb/commit/{{config.DEPLOY_SHA}}">{{config.DEPLOY}}</a>
         {% else %}
           MeDB: {{config.DEPLOY}}
         {% endif %}
-        | Copyright © 2021 Stephen Brennan
+        | Copyright © 2021-2026 Stephen Brennan
       </span>
     </div>
   </footer>

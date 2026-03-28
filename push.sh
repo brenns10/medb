@@ -1,292 +1,29 @@
-#!/usr/bin/env bash
-# Deploy script! For pushmasters' eyes only.
+#!/usr/bin/bash
+# Deploy script!
 
-# Step 0: Some awesome adjectives, names, and helper functions
-adjectives=$(cat <<EOF
-adorable
-adventurous
-aggressive
-agreeable
-alert
-alive
-amused
-angry
-annoyed
-annoying
-anxious
-arrogant
-ashamed
-attractive
-average
-awful
-bad
-beautiful
-better
-bewildered
-black
-bloody
-blue
-blue-eyed
-blushing
-bored
-brainy
-brave
-breakable
-bright
-busy
-calm
-careful
-cautious
-charming
-cheerful
-clean
-clear
-clever
-cloudy
-clumsy
-colorful
-combative
-comfortable
-concerned
-condemned
-confused
-cooperative
-courageous
-crazy
-creepy
-crowded
-cruel
-curious
-cute
-dangerous
-dark
-dead
-defeated
-defiant
-delightful
-depressed
-determined
-different
-difficult
-disgusted
-distinct
-disturbed
-dizzy
-doubtful
-drab
-dull
-eager
-easy
-elated
-elegant
-embarrassed
-enchanting
-encouraging
-energetic
-enthusiastic
-envious
-evil
-excited
-expensive
-exuberant
-fair
-faithful
-famous
-fancy
-fantastic
-fierce
-filthy
-fine
-foolish
-fragile
-frail
-frantic
-friendly
-frightened
-funny
-gentle
-gifted
-glamorous
-gleaming
-glorious
-good
-gorgeous
-graceful
-grieving
-grotesque
-grumpy
-handsome
-happy
-healthy
-helpful
-helpless
-hilarious
-homeless
-homely
-horrible
-hungry
-hurt
-ill
-important
-impossible
-inexpensive
-innocent
-inquisitive
-itchy
-jealous
-jittery
-jolly
-joyous
-kind
-lazy
-light
-lively
-lonely
-long
-lovely
-lucky
-magnificent
-misty
-modern
-motionless
-muddy
-mushy
-mysterious
-nasty
-naughty
-nervous
-nice
-nutty
-obedient
-obnoxious
-odd
-old-fashioned
-open
-outrageous
-outstanding
-panicky
-perfect
-plain
-pleasant
-poised
-poor
-powerful
-precious
-prickly
-proud
-putrid
-puzzled
-quaint
-real
-relieved
-repulsive
-rich
-scary
-selfish
-shiny
-shy
-silly
-sleepy
-smiling
-smoggy
-sore
-sparkling
-splendid
-spotless
-stormy
-strange
-stupid
-successful
-super
-talented
-tame
-tasty
-tender
-tense
-terrible
-thankful
-thoughtful
-thoughtless
-tired
-tough
-troubled
-ugliest
-ugly
-uninterested
-unsightly
-unusual
-upset
-uptight
-vast
-victorious
-vivacious
-wandering
-weary
-wicked
-wide-eyed
-wild
-witty
-worried
-worrisome
-wrong
-zany
-zealous
-EOF
-)
-
-scientists=$(cat <<EOF
-aho
-babbage
-berners-lee
-boole
-borg
-cantrill
-carmack
-curry
-dijkstra
-eich
-gates
-hamming
-hennessy
-hopper
-huffman
-joy
-kernighan
-kleene
-knuth
-lamport
-lions
-liskov
-lovelace
-matsumoto
-mccarthy
-mcilroy
-moore
-ng
-norvig
-ritchie
-rivest
-van-rossum
-schneier
-stallman
-stroustrup
-tanenbaum
-thompson
-torvalds
-turing
-ullman
-viterbi
-wozniak
-EOF
-)
+# Push destination details
+REGISTRY="reg.vps.brenns10.com"
+HOST=stephen@gluttony.local
+SERVICES="medb-web.service medb-worker.service"
 
 _name() {
-    echo $(echo "$adjectives" | shuf -n 1)-$(echo "$scientists" | shuf -n 1)
+    local rev dirty
+    rev="$(git rev-parse --short HEAD)"
+    dirty=""
+    if ! git diff-index --quiet --cached HEAD; then
+        dirty="+dirty"
+    elif ! git diff-files --quiet; then
+        # Working tree has changes.
+        dirty="+dirty"
+    elif [ -n "$(git ls-files --others --exclude-standard)" ]; then
+        dirty="+dirty"
+    fi
+    echo "$rev$dirty"
 }
 
 _yesno() {
     while true; do
-        read -p "$1 (Y/n) " yn
+        read -rp "$1 (Y/n) " yn
         case $yn in
                 "" ) break;;
                 [Yy]* ) break;;
@@ -298,48 +35,39 @@ _yesno() {
 
 _getdefault() {
     if [ -z "$2" ]; then
-        read -p "$1: " value
+        read -rp "$1: " value
     else
-        read -p "$1 [$2]: " value
+        read -rp "$1 [$2]: " value
         if [ -z "$value" ]; then
             value="$2"
         fi
     fi
-    echo -n $value
+    echo -n "$value"
 }
 
-REGISTRY="reg.vps.brenns10.com"
-HOST=stephen@gluttony.local
-SERVICES="medb-web.service medb-worker.service"
-
-# Step 1: Create git archive
 TAGDESC="$(_getdefault "Tag message (no spaces)" "$(_name)")"
 DATE="$(date +%Y-%m-%d)"
 TAG="deploy-$DATE-$TAGDESC"
 
 echo @@@ BUILD IMAGE @@@
-podman build -t medb:latest
+podman build -e MEDB_DEPLOY="$TAG" -t medb:latest .
 
-# Step 2: Send to host and create environment.
 echo @@@ PUSH IMAGE @@@
-echo Destination: "$HOST"
 podman push medb:latest "$REGISTRY/medb:latest"
-ssh $HOST "sed -i 's/^MEDB_DEPLOY=.*$/MEDB_DEPLOY=$TAG/' medb/env" 2>/dev/null
 
-# Step 3: Down/up deploy, with optional pause for push plan
-echo @@@ STOP SERVICES @@@
-ssh $HOST "systemctl --user stop $SERVICES" 2>/dev/null
+echo @@@ STOP OLD VERSION @@@
+ssh $HOST "systemctl --user stop $SERVICES"
 echo
-echo New environment is installed, and old version is stopped.
+echo The new image has been pushed and the old services stopped.
 echo
 echo Use this time to open another terminal and apply any migrations or manual
-echo steps. Note that the old version is still symlinked at current-ver. You
-echo can find the new version in $TAG
+echo steps. The new image should be tagged \"medb:latest\" while the old one
+echo should be retained as \"medb:stable\".
 echo
 if ! _yesno "Continue? (answering no will require cleanup)"; then
     exit 1
 fi
-ssh $ADMIN "systemctl --user start $SERVICES" 2>/dev/null
+ssh $HOST "systemctl --user start $SERVICES"
 
 # Step 4: Verify push and delete old version
 echo
@@ -347,9 +75,8 @@ echo Push is completed, please verify.
 echo
 if ! _yesno "Certify?"; then
     echo @@@ ROLLBACK PUSH @@@
-    ssh $HOST "systemctl --user stop $SERVICES" 2>/dev/null
     skopeo copy docker://$REGISTRY/medb:{stable,latest}
-    ssh $ADMIN "systemctl --user start $SERVICES" 2>/dev/null
+    ssh $HOST "systemctl --user restart $SERVICES" 2>/dev/null
     echo @@@ ROLLBACK COMPLETE @@@
     exit 1
 else

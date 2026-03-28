@@ -4,6 +4,7 @@ Most configuration is set via environment variables.
 For local development, use a .env file to set
 environment variables.
 """
+import re
 from environs import Env
 
 env = Env()
@@ -31,4 +32,11 @@ SMTP_PORT = env.str("SMTP_PORT")
 SMTP_SENDER = env.str("SMTP_SENDER")
 SMTP_SERVER = env.str("SMTP_SERVER")
 
-DEPLOY = env.str("MEDB_DEPLOY", default="(development, no deploy info)")
+DEPLOY = env.str("MEDB_DEPLOY", default="deploy-2026-03-27-abcd1234")
+DEPLOY_SHA = None
+DEPLOY_DIRTY = None
+DEPLOY_DATE = None
+if _m := re.fullmatch(r"^deploy-(\d{4}-\d{2}-\d{2})-([a-f0-9]+)(\+.*)?$", DEPLOY):
+    DEPLOY_DATE = _m.group(1)
+    DEPLOY_SHA = _m.group(2)
+    DEPLOY_DIRTY = bool(_m.group(3))
