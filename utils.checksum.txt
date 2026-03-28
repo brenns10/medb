@@ -1,0 +1,4 @@
+b9d1dec58e404b76964336ede883c482ce1ca03907a2903a94c53e818bfb4b69  utils/fast-cli
+bb8ce263023ccf2461d51b8bdafbc060482084489bb168479a688b50330d011e  utils/fast-cli-v0.2.10-linux-amd64.tar.gz
+5690596c54ff9bed63fa3732f818a05dbc2db19ad36ed68f21ca5f64d5cfeeb7  utils/ookla-speedtest-1.2.0-linux-x86_64.tgz
+31f1124c5ab8acdae6b9fe1741e704df420f9f2e7d429679fabe62075453c051  utils/speedtest

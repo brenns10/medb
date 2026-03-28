@@ -312,3 +312,15 @@ def maybe_format(fmt, arg):
         return fmt % arg
     else:
         return "None"
+
+
+@blueprint.cli.command("run")
+def cmd_run():
+    # Delayed import because this module is imported prior to app creation in
+    # medb.app. At that time the Celery extension is not yet loaded and so the
+    # tasks can't initialize.
+    from .tasks import perform_speedtest_net
+    from .tasks import perform_fast_com
+
+    perform_speedtest_net()
+    perform_fast_com()

@@ -1,0 +1,19 @@
+[Unit]
+Description=MeDB Celery Worker
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+Image=MYREGISTRY/medb:latest
+Pull=always
+ContainerName=medb-web
+Volume=%h/medb/data:/data
+EnvironmentFile=%h/medb/env
+EnvironmentFile=%h/medb/env.secret
+Command=uv --no-dev --frozen run celery -A autoapp:celery worker -B -c 2
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

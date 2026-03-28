@@ -55,9 +55,7 @@ class Pinger:
         start = time.time()
         try:
             ret = self.sock.sendto(data, (str(self.addr), 0))
-            print(ret)
         except OSError as exc:
-            print("ERR")
             if exc.errno == errno.ENETUNREACH:
                 return PingResult(self.addr, False, None)
             raise

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """Extensions module. Each extension is initialized in the app factory located in app.py."""
+from pathlib import Path
+
 from celery import Celery
 from flask_bcrypt import Bcrypt
 from flask_bootstrap import Bootstrap4
@@ -18,14 +20,27 @@ db = SQLAlchemy()
 migrate = Migrate()
 
 
+def _get_broker_options(url: str) -> dict[str, str]:
+    if url != "filesystem://":
+        return {}
+    broker = Path.cwd() / "data/broker"
+    broker.mkdir(exist_ok=True, parents=True)
+    return {
+        "data_folder_in": str(broker),
+        "data_folder_out": str(broker),
+    }
+
+
 class CeleryExtension(Celery):
     def __init__(self):
         pass
 
     def init_app(self, app):
+        url = app.config["CELERY_BROKER_URL"]
         super().__init__(
             app.import_name,
-            broker=app.config["CELERY_BROKER_URL"],
+            broker=url,
+            broker_transport_options=_get_broker_options(url),
             include=[
                 "medb.shiso.tasks",
                 "medb.speedtest.tasks",

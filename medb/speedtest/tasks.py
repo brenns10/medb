@@ -39,9 +39,10 @@ def perform_speedtest_net():
         tries_allowed -= 1
         try:
             res = subprocess.run(
-                ["speedtest-cli", "--json"],
+                ["speedtest", "--accept-license", "-f", "json"],
                 check=True,
                 capture_output=True,
+                input=b"YES\n",
                 timeout=120,
             )
             break
@@ -66,12 +67,12 @@ def perform_speedtest_net():
     test_result = json.loads(res.stdout.decode("utf-8"))
     server_name = "{} ({})".format(
         test_result["server"]["name"],
-        test_result["server"]["sponsor"],
+        test_result["server"]["location"],
     )
     row = SpeedTestResult(
-        upload_bps=int(test_result["upload"]),
-        download_bps=int(test_result["download"]),
-        ping_ms=float(test_result["ping"]),
+        upload_bps=int(test_result["upload"]["bandwidth"]),
+        download_bps=int(test_result["download"]["bandwidth"]),
+        ping_ms=float(test_result["ping"]["latency"]),
         server_name=server_name,
         server_id=test_result["server"]["id"],
     )
@@ -92,7 +93,7 @@ def perform_fast_com():
         tries_allowed -= 1
         try:
             res = subprocess.run(
-                [Path.home() / "go/bin/fast-cli", "-s"],
+                ["fast-cli", "-s"],
                 check=True,
                 capture_output=True,
                 text=True,

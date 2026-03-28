@@ -1,8 +1,17 @@
+# Standard Python
 __pycache__
-venv
+.venv
+
+# Secrets
 .env.secret*
-db/*
+
+# Downloads & local DB file
+utils/
+
+# Celery stuff
+celerybeat*
+control/
+data/
+
+# Documentation
 medb.org
-medb-deploy.tar.gz
-celerybeat-schedule
-dump.rdb

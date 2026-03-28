@@ -1,0 +1,19 @@
+[Unit]
+Description=MeDB Web UI
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+Image=MYREGISTRY/medb:latest
+Pull=always
+ContainerName=medb-web
+Volume=%h/medb/data:/data
+EnvironmentFile=%h/medb/env
+EnvironmentFile=%h/medb/env.secret
+PublishPort=5000:5000
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

@@ -68,14 +68,22 @@ Development
 -----------
 
 1. Make sure configuration is in place at `.env` and `.env.secret`.
-2. `uv sync`
-3. `uv run flask public init`
-4. `uv run flask run`
+2. Install dependencies: `uv sync`
+3. Initialize database: `uv run flask public init`
+4. Run locally: `uv run flask run`
+5. (Optional) Run celery: `uv run celery -A autoapp:celery worker -B -c 2`
 
-For testing tasks, you'll want to concurrently run:
+Deployment
+----------
 
-```
-venv/bin/celery -A autoapp.celery worker -l INFO
-```
+Deployed to a local server via a quadlet. See `quadlet/` for sample configs.
 
-The development configs use sqlite as a broker, so you don't need much additional setup.
+1. Fetch utilities used by speedtest: `make utils`
+2. Build image: `podman build -t medb:latest .`
+3. Push to registry: `podman push medb:latest REGISTRY/medb:latest`
+4. Stop quadlet: `systemctl --user restart medb-web.service medb-worker.service`
+5. Apply migrations if necessary.
+6. Start new quadlet: `systemctl --user restart medb-web.service medb-worker.service`
+7. Test.
+8. Promote to stable: `podman tag medb:latest medb:stable && podman push medb:latest REGISTRY/medb:stable`.
+   Or, on failure, restore the prior tag: `skopeo copy docker://REGISTRY/medb:{stable,latest}`
