@@ -179,6 +179,7 @@ class PlaidAccount:
         kwargs = json_dict.copy()
         kwargs["balances"] = PlaidBalance.from_json_dict(json_dict["balances"])
         kwargs["type"] = PlaidAccountType(json_dict["type"])
+        kwargs = keyfilter(lambda k: k in cls.__dataclass_fields__, kwargs)
         return cls(**kwargs)
 
 
