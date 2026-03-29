@@ -9,6 +9,7 @@ from celery.schedules import crontab
 from celery.schedules import schedule
 from flask import Flask
 from flask import render_template
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 import medb.shiso.models  # noqa
 import medb.shiso.views
@@ -40,6 +41,10 @@ def create_app(config_object="medb.settings"):
     register_shellcontext(app)
     register_commands(app)
     configure_logger(app)
+    # When we live behind a reverse proxy, url_for may think we have HTTP URLs.
+    # Use this so that flask gets the right protocol/scheme, which is importent
+    # especially when generating the Plaid redirect_uri.
+    app.wsgi_app = ProxyFix(app.wsgi_app)
     return app
 
 
