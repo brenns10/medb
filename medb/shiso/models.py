@@ -55,39 +55,32 @@ CATEGORIES_V2 = {
         "Dinner Takeout",
         "Social Dining",
         "Fancy Dinner",
-        "Other Dining",
-    ],
-    "Alcohol": [
-        "Bars",
-        "Alcohol Store",
-        "Other Alcohol",
     ],
     "Bills & Utilities": [
         "Rent",
         "Internet",
         "Cell Phone",
         "Cloud Service",
-        "Donation",
+        "Taxes",
         "Other Bill or Utility",
     ],
     "Shopping": [
-        "Household Staples",
-        "Plants & Plant Stuff",
-        "Hobby Purchases",
+        "Household",
+        "Hobby",
         "Clothing",
         "Gifts",
         "Other Shopping",
     ],
-    "Medical": [
+    "Health": [
         "Medical",
+        "Mental Health",
+        "Dental Health",
+        "Wellness",
     ],
-    "Travel Expenses": [
-        "Visiting Home",
-        "Conference Travel",
+    "Travel": [
+        "Family Travel",
+        "Work Travel",
         "Vacation",
-    ],
-    "Wedding": [
-        "Wedding",
     ],
     "Groceries": [
         "Groceries",
