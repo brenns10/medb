@@ -8,7 +8,7 @@ push:
 .PHONY: upgrade upgrade-requirements
 upgrade: upgrade-requirements
 upgrade-requirements:
-	uv lock
+	uv lock --upgrade
 
 .PHONY: venv
 venv: .venv
