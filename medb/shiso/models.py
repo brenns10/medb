@@ -212,7 +212,7 @@ class Transaction(Model):
     plaid_merchant_name = Column(String, nullable=True)
     plaid_location = Column(String, nullable=False)  # json
     plaid_authorized_date = Column(Date, nullable=True)
-    plaid_category_id = Column(String(100), nullable=False)
+    plaid_category_id = Column(String(100), nullable=True)
 
     updated = Column(
         TZDateTime(),
